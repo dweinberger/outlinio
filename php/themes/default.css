@@ -1,0 +1,158 @@
+
+.t0{
+  background-color: #FF8664;  
+  color: #FFFCCB;
+}
+#startingdiv{
+	width: 100%;
+	height: 1px;
+	border-top: 1px red solid;
+	clear:both;
+}
+.line{
+	font-size: 14pt;
+	font-family:Arial, Georgia, Palatino, Bookman, Times New Roman, serif;
+	color:blue;
+	position: relative;
+	height: auto;
+	/* overflow: hidden; */
+	resize: none;
+
+}
+.linediv{
+	height: auto;
+	position: relative;
+	/* border: 1px dotted purple; */
+}
+p {
+	font-family:Georgia, Palatino, Bookman, Times New Roman, serif;
+}
+
+.L0 {
+	margin-left = 0px;
+}
+
+.underlined{
+	text-decoration:underline;
+}
+textarea{
+	font-family:Georgia, Palatino, Bookman, Times New Roman, serif;
+	height:15px;
+	background-color:#FFFFA0;
+	width:95%;
+	margin-top:1px;
+	margin-bottom:1px;
+	border:0px;
+}
+#titletxtarea{
+	height:30pt;
+	width: 50%;
+	font-size:24pt;
+	background-color:#FFFFFF;
+	font-family: "Helvetica Neue",Helvetica,Verdana,Arial,Sans;
+}	
+.toolsdiv{
+  border: blue 1px dashed;
+ }
+.littlebutton{
+  
+}
+.labeltext{
+   font-family:Arial,Geneva,San Serif;
+   font-size: 8pt;
+}
+#dirchooser{
+	position:absolute;
+	left:0;
+	top: 0;
+	background: rgba(192,192,192,.9);
+	width: 100%;
+	height: 100%;
+	text-align: left;
+	display:none;
+	z-index:200	
+}
+#dirs{
+	font-family: "Helvetica Neue",Helvetica,Verdana,Arial, sans-serif;
+	font-size: 11px;
+	width: 40%;
+	margin-left: 50px;
+	overflow: scroll;
+}
+#workingdirspan{
+	color: #E308C7;
+}
+#dirspanel{
+	width: 200px;
+	position: relative;
+	float: left;
+	z-index: 2001;	
+}
+.dirselectspan{
+	background-color: #14B015;
+	padding: 3px;
+	border-radius: 4px;
+	/* border: 1px solid #FFA811; */
+	color: #0A590B;
+	margin-right: 4px;
+	font-size: 6px;
+}
+.dirnameclass{
+	font-size: 12px;
+}
+.selecteddir{
+	background-color: yellow;
+}
+
+#notifybanner{
+	position: fixed;
+	top: 20px;
+	text-align: right;
+	left: 55%;
+	margin-right: auto;
+	max-width: 40%;
+	padding: 5px;
+	z-index: 10000;
+	color: white;
+	font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
+	font-size: 20px;
+	font-weight: 300;
+	-webkit-box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9);
+	-moz-box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9);
+	box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9); 
+
+}
+.drophover{
+ 	border-bottom: 5px dotted #FF1B4F;
+ }
+ #dropZone{
+ 	position:absolute;
+	left:0;
+	top: 0;
+	background: rgba(192,192,192,.9);
+	width: 100%;
+	height: 100%;
+	text-align: center;
+	display:none;
+	z-index:200;
+ }
+#saveDialog{
+	display: none;
+	margin-left: auto;
+	margin-right: auto;
+	position: absolute;
+	top: 0;
+	width: 400px;
+	background-color: #FF9425;
+	color: #FFFCE6;
+	padding: 5px;
+	z-index: 10000;
+	-webkit-box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9);
+	-moz-box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9);
+	box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9); 
+} 
+#savefilename{
+	font-size: 18px;
+	height: 22px;
+}
+

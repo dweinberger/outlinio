@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+	<!-- THE ONE WITHOUT A DISTINCTION BETWEEN FIRST LINES AND THE REST.
+		 AND NO CONTAINER DIV 
+	-->
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<title>outlinio-04</title>
+		<link rel="icon" type="image/png" href="favicon.ico">
+		
+		<!-- default.css for the baseline. The id=pagestyle for additional ones from dropdown list -->
+		<link type="text/css" rel="stylesheet" href="./css/default.css">
+		<link id="pagestyle" type="text/css" rel="stylesheet" href="./css/default.css">
+		
+		<!-- link  type="text/css" rel="stylesheet" href="./css/outlinio-user-prefs.css" -->
+		
+		<script src="./includes/jquery-2.1.4.min.js"></script>
+		<script src="./includes/jquery-ui-1.11.4.custom/jquery-ui.min.js"></script>
+
+<!--
+		<script  src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+
+-->
+
+<!-- <script  src="./includes/jquery-ui-1.11.4.custom/jquery-ui.min.js"></script> -->
+
+
+		<script type="text/javascript" src="./includes/autoresize.jquery.js"></script>
+		<script type="text/javascript" src="./includes/shortcuts.js"></script>
+		<script type="text/javascript" src="./includes/jquery.textareaAutoResize.js"></script>
+		<script type="text/javascript" src="./js/outlinio_04.js"></script>
+		<!-- Thanks, http://www.openjs.com/scripts/events/keyboard_shortcuts/-->
+		
+	<!-- DEBUG!!! Uncomment this to get Dropbox back ----------    
+	script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="7xu5g8mzcmlu1tk"></script-->	
+		
+<script language="javascript" type="text/javascript">
+
+$(document).ready(function(){	
+	 //alert("im");
+	//document.designMode='on';
+	
+	init();
+	// show body after the template has loaded
+	$("#openloader").fadeOut(300);
+	
+	
+});
+</script>
+</head>
+
+<body>
+
+ <div  id="openloader"><div id="inneropenloader"><img src="images/waiting2.gif"<br />Loading the templates</div></div>
+
+	<div id="notifybanner" class="tool"  style="display:none;"></div>
+	<p id="revdate"></p>
+	  
+	  <div id="dropZone" onclick="$('#dropZone').fadeOut(300)"><div id="dztext">Drop .OPML file<br /> Click anywhere to close</div></div>
+	  
+	  <div id="saveDialog">
+	  	<p class="savetext">Save file (.opml will be added): <textarea id="savefilename"></textarea><br>
+	  	to <span id="savedirname"></span> <p>
+	  	<input type="button" value="save" onclick="saveFile('QUIET')">
+	  	<input type="button" value="cancel" onclick="$('#saveDialog').slideUp(300)">
+	  	<input type="button" value="change dir" onclick="$('#saveDialog').slideUp(300);$('#dirchooser').fadeIn(300);">
+	  	<input type="checkbox" id="backupchk" >Backup
+	  </div>
+	  	
+	  
+	  <div id="dirchooser">
+	  <p style="font-size: 1.5em; color:yellow;font-family: 'Helvetica Neue',Helvetica,Verdana,Arial">Current Folder: <span id="workingdirspan"></span></p>
+	  	<div id="dirs">
+	  	</div>
+	  	<div id="dirspanel">
+	  		<input type="button" value="close" onclick="$('#dirchooser').fadeOut(300)">
+	  		<input type="button" value="Refresh Directories" onclick="refreshDirs()">
+	  	</div>
+	  </div>
+	
+	
+<!-- TOOL BAR -->	
+	<input type="button" class="littlebutton" value="Show/hide" onclick="ShowHideDiv('toolsdiv')">
+	<div id="toolsdiv" class="toolsdiv"style="display:block;">
+	
+	 <!-- the form that does it -->OPEN EXISTING: 
+	<form action="php/uploadOPMLtoRead.php" method="post" enctype="multipart/form-data">
+	<input type="file" value="" name="upload[]" multiple>
+	<button type="submit">Open OPML</button>
+	</form>	
+	
+	<form name="exporttypesform" enctype="multipart/form-data">
+	<span id="menuspan">
+	<input type="button" value="New" onclick="createNewOutline()">
+	<span id="openbtnspan">
+<input type="file" name="datafile" id="filetoopen" size="40">
+
+	<input type="button" value="Open OPML" onclick="openOpmlFile()">
+	<input type="button" value="Drag in OPML" onclick="$('#dropZone').fadeIn(300)">
+	<input type="button" value="Choose dir" onclick="$('#dirchooser').fadeToggle(300); $('#workingdirspan').html(gWorkingDir);">
+	<input type="button" value="Save" onclick="showSaveDialog()" id="savebtn">
+	
+	<input type="button" value="Save As"  onclick="saveFile()">
+	</span>
+	<span id="keystrokectr" class="labeltext">5</span><span class="labeltext"> keystrokes till save 
+	<input type=checkbox id="savechk" checked value="Save">
+	
+	<input type=button value="Backup" onclick="saveBackup();"></span>
+	
+	Theme:<select id="themeselectlist"  >
+	    <!-- option  value="menu">Menu</option -->
+	</select>
+	
+	</form></div>
+	
+<!-- Save [as opml] -->
+<!--form enctype="multipart/form-data" action="savefile.php" method="POST">
+  <input type="hidden" name="MAX_FILE_SIZE" value="1000000" />
+  <input name="userfile" type="file" />
+   <input type="hidden" name="savedir" id="savedir" value="8">
+  <input type="submit" value="Save it" />
+</form -->
+
+
+<div id="dropboxbutton">chooser:<br>
+</div>
+	
+<!-- EXPORT AS DIV -->
+<div id="exportas">
+<input type="button" value="Download File" onclick="downloadFile();"> as: <select id="exports"">
+			<option value="OPML">Opml</option>
+			<option value="RTF">Rtf</option>
+			<option value="HTML">Html</option>
+			<option value="TEXT">Text</option>
+		</select>
+		
+		<!--input type="file" id="saveasdialogue"-->
+</div>
+
+<!-- OUTLINE BEGINS HERE -->
+
+<p id="titleel"><textarea id="titletxtarea" class="titletextarea" onclick="noteSpot(this)"; >TITLE</textarea>
+	
+	<div  id="startingdiv"></div>
+	
+	<div id="enddiv"></div>
+	<div id="status"></div>
+	
+
+</body>
+</html>

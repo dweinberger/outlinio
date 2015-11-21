@@ -1,0 +1,54 @@
+body{
+	background-color: #4E4E4E;
+}
+
+/* Every area that lets you type into it */
+textarea{
+	
+}
+/* Overall default properties of lines of text */
+.line{
+	font-size: 6pt;
+	font-family: Helvetica;
+	color:#F9F9F9;
+	background-color:#404040
+	position: relative;
+	height: auto;
+	overflow: hidden;
+	resize: none;
+}
+
+/* The row each text area is in */
+.linediv{
+	margin-top: -5px;
+	margin-bottom: -5px;
+}
+
+/* The different indent levels of each row */
+.t0{
+  background-color: #000; 
+  color: #E1E1E1;
+  font-size: 12pt;
+}
+.t1,.t2,.t3,.t4,.t5,.t6{
+  background-color: #757575; 
+  color: #FFF;
+  font-size: 11pt;
+}
+.
+
+
+ */
+#titletxtarea{
+	height:14pt;
+	width: 95%;
+	font-size:12pt;
+	background-color:#4E4E4E;
+	color: #404040;
+	border-bottom: 2px solid #4A8DFF;
+	font-family: "Helvetica Neue",Helvetica,Verdana,Arial,Sans;
+}
+
+
+
+

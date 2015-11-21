@@ -1,0 +1,14 @@
+php/Dropbox
+php/Downloads
+php/currentFile/*
+php/outline_backups/*
+php/dropbox-sdk
+php/temp_uploads/*
+current*
+dropboxtest*
+TEST*
+outlinio4.bbprojectd
+.DS_Store
+hawaii*
+includes/dropbox*
+includes/jquery-ui*
