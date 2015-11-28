@@ -25,7 +25,7 @@ var browsertype ="";
 var treeArray = new Array();
 var glevel = 0;
 var gindent = 30;
-var gDebug = false;
+var gDebug = true; // debug it?
 var gFileTitle = "";
 var gDir = new Array(); // directory structure
 var gRootdir = "Dropbox";
@@ -52,7 +52,7 @@ function init(){
 
   assignKeys();
   initDropZone();
-  loadDirs();
+//   initDefinedClasses(); // add indent to .L div classes
   
   
  
@@ -239,6 +239,12 @@ function getCookie(c_name)
 	   }
 }
 
+function showDirs(){
+	$('#dirchooser').fadeToggle(300); 
+	$('#workingdirspan').html(gWorkingDir);
+	loadDirs();
+}
+
 function refreshDirs(){
 	$.ajax({
         type: "POST",
@@ -259,7 +265,9 @@ function loadDirs(){
         url: "./php/readdirsfile.php",
 		//async: false,
 		success: function(dirs){
-           buildDirSelector(dirs);
+			if ( ($("#dirs").text() == 'Working...') || ($("#dirs").text() == '')){
+           		buildDirSelector(dirs);
+           	}
         },
         error: function(e){
 			alert(e.statusText + " Failed to get the folders in Dropbox");
@@ -833,18 +841,18 @@ function indentLine(div, which){
 			level = 0;
 		}
 	}
+	// force the indent
+	$(div).css('margin-left', (level * gindent) + "px");
 	// does the class exist
-	if ($(".L" + level).length > 0) {
-	    var doesClassExist = true;
-	    }
-	else{
+	var classExists = selectorExists("t" + level);
+    if (classExists == false){
 	  createClass(level);
 	  }
 	 
 	
 	// change level data and class
 	div.setAttribute("level", level + ""); // turn it into a string
-	div.setAttribute("level", level + "");
+	//div.setAttribute("level", level + "");
 	div.setAttribute("class", "linediv " + "L" + (level + ""));
 	
 
@@ -855,6 +863,7 @@ function indentLine(div, which){
 	// update text area
 	var tarea = getTextareaFromDiv(div);
 	$(tarea).attr("class", "line " + "t" + level);
+	$(tarea).attr("level",  level);
 	if (gDebug){
 		$(tarea).val(whichdiv + "\tLEVEL: " + level );
 	}
@@ -890,11 +899,12 @@ function createNewOutline(){
 }
 
 function createClass(lev){
-   // creates class for a level, using the styles hidden in doc
-   // applies to textareas
+   // creates class for a level
    
    // get class name
    var classname = '.L' +  lev;
+   
+ 
    // get indent
    var indent = gindent * (lev);
 	var styletext =  classname + '{margin-left:' + indent + 'px;}';
@@ -902,10 +912,61 @@ function createClass(lev){
 	style.type = 'text/css';
 	style.innerHTML = styletext;
 	document.getElementsByTagName('head')[0].appendChild(style);
-	return;
-
+	
 
 	
+}
+
+// function initDefinedClasses(){
+// 	// add indents to any initial L classes
+// 	var classname ="", lev="";
+// 	// Look through defined classes for .L#
+//  	var selectors = getAllSelectors();
+//     for(var i = 0; i < selectors.length; i++) {
+//     	classname =selectors[i];
+//     	if (classname.indexOf(".t") == 0){
+//     		// is the rest of it a number??
+//     		lev = classname.substr(2);
+//     		// is numb an integer?
+//     		// http://stackoverflow.com/questions/20311572/check-a-value-is-float-or-int-in-jquery
+//     		//if(typeof (lev + 1)	 === 'number'){
+//     			var numb = Number(lev);
+//   				 if(numb % 1 === 0){
+//   				 // it's an integer
+//   					var indent = gindent * (numb);
+// 					var styletext =  ".L" + numb + '{margin-left:' + indent + 'px;}';
+// 					var style = document.createElement('style');
+// 					style.type = 'text/css';
+// 					style.innerHTML = styletext;
+// 					document.getElementsByTagName('head')[0].appendChild(style);	
+//      			}
+//         	//}
+//     	}
+// 	}
+// }
+
+// http://stackoverflow.com/questions/983586/how-can-you-determine-if-a-css-class-exists-with-javascript
+function getAllSelectors() { 
+    var ret = [];
+    for(var i = 0; i < document.styleSheets.length; i++) {
+        var rules = document.styleSheets[i].rules || document.styleSheets[i].cssRules;
+        for(var x in rules) {
+            if(typeof rules[x].selectorText == 'string') ret.push(rules[x].selectorText);
+        }
+    }
+    return ret;
+}
+
+
+function selectorExists(selector) { 
+	selector = "." + selector;
+    var selectors = getAllSelectors();
+    for(var i = 0; i < selectors.length; i++) {
+        if(selectors[i] == selector){
+        	 return true;
+        }
+    }
+    return false;
 }
       
 function createNewLine(div){
@@ -920,15 +981,32 @@ function createNewLine(div){
 	// create new containing div
 	var newdiv = document.createElement('DIV');
 	var level = getLevel(div);
+	
 	// if new highest indent, create new class
 	if (level > gHighestLevel) {
-	   createClass(level);
+		// create class if one's been defined. 
+		// does new class exist
+		var classexists = selectorExists("L" + level);
+		//if (classexists == true){
+	  		createClass(level);
+			newdiv.setAttribute("class", "linediv " + "L" + level);
+	  	//}
+	  //	else{
+	  	//	newdiv.setAttribute("class", "defaultline linediv " + "L" + level);
+	  	
+	  	//}
 	   gHighestLevel=level;
 	}
 	// set the class of the containing div
-	var levelstr = level + "";
-	newdiv.setAttribute("class", "linediv " + "L" + level);
+	// var levelstr = level + "";
+// 		newdiv.setAttribute("class", "linediv " + "L" + level);
+// 	}
+	// not a new high
+	else {
+		newdiv.setAttribute("class", "linediv " + "L" + level);
+	}
 	// set the level attribute
+	var levelstr = level + "";
 	newdiv.setAttribute("level", levelstr);
 	// set id
 	highestgid++; // increment this global
@@ -1030,19 +1108,7 @@ function changeArrow(o){
 	
 }
 
-function doTheDownload(s, tit){
-// thanks http://css.dzone.com/articles/html5-blob-objects-made-easier
-	window.URL = window.webkitURL || window.URL;
-	window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
-	var blob = new Blob([s], { type: 'text/plain' });
-	var bloburl = window.URL.createObjectURL(blob)
-	var a = document.createElement('a');
-	a.href = bloburl; // window.URL.createObjectURL(file.getBlob('text/plain'));
-	a.download = tit;
-	a.textContent = 'Download file!';
-	document.body.appendChild(a);
 
-}
 
 function saveBackup(){
 	// save it as an opml file to the server
@@ -1213,8 +1279,8 @@ function downloadFile(which){
 
 	
     // get format from the pulldown
- if (which == null){
-    	 which = $("#selects").val();
+ if ((which == undefined) || (which == null)){
+    	 which = $("#exports").val();
 	}
 		
 	// strip extension from file
@@ -1225,15 +1291,15 @@ function downloadFile(which){
 	
 	switch (which){
    case "RTF":
-    	var legittitle = gDownloadDir + titleNoExt + ".rtf";
+    	var legittitle = titleNoExt + ".rtf";
 	   body = buildRTF(legittitle); 
 	   break;
    case "HTML":
-	   var legittitle = gDownloadDir + titleNoExt + ".html";
+	   var legittitle = titleNoExt + ".html";
 	   body = buildHTML(legittitle);
 	   break;
     case "TEXT":
-	   var legittitle = gDownloadDir + titleNoExt + ".txt";
+	   var legittitle = titleNoExt + ".txt";
 	   body = buildText(legittitle);
 	   break;
     case "OPML":
@@ -1241,11 +1307,11 @@ function downloadFile(which){
 	   body = buildOPML();
 	   break;
     case "BACKUP":
-	   var legittitle = backupDirectory + titleNoExt + ".opml";
+	   var legittitle = backupDirectory + "\\" + titleNoExt + ".opml";
 	   body = 	(legittitle);
 	   break;
 	default: 
-		alert("Error in finding type of file to save. Not saved.")
+		notify("Error in finding type of file to save. Not saved.", "ERROR")
 		return;
    }
    
@@ -1254,10 +1320,27 @@ function downloadFile(which){
   
 }
 
+function doTheDownload(s, tit){
+// thanks http://css.dzone.com/articles/html5-blob-objects-made-easier
+	window.URL = webkitURL || window.URL;
+	window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
+	var blob = new Blob([s], { type: 'text/plain' });
+	var bloburl = window.URL.createObjectURL(blob)
+	var a = document.createElement('a');
+	a.href = bloburl; // window.URL.createObjectURL(file.getBlob('text/plain'));
+	a.download = tit;
+	a.textContent = 'Download ' + tit;
+	$("#exportas").append(a);
+
+}
+
 function buildRTF(tit){
 	// do the header
-	var b = b + "{\\pard\\b " + tit + "\\b\\par}";
 	
+	var lf = String.fromCharCode(13);
+	var outlinetitle = $("#titletxtarea").val();
+	var b = "{\\rtf1" + lf + "{{\\b " + outlinetitle + "\\b\}" + lf + "\\par" + lf;
+
 	// get all text areas
 	var childs = $(".line");
 	var lev, indent, txt;
@@ -1270,7 +1353,7 @@ function buildRTF(tit){
 		txt = $(childs[i]).val();
 		b = b + "\r{\\pard \\li" +  indent  + " " + txt + "\\par}";
 	}
-	b = b + "\r}";
+	b = b + "\r}\r}";
 	//alert(b);
 	return b;
 	

@@ -73,6 +73,7 @@ $(document).ready(function(){
 	  <div id="dirchooser">
 	  <p style="font-size: 1.5em; color:yellow;font-family: 'Helvetica Neue',Helvetica,Verdana,Arial">Current Folder: <span id="workingdirspan"></span></p>
 	  	<div id="dirs">
+	  		Working...
 	  	</div>
 	  	<div id="dirspanel">
 	  		<input type="button" value="close" onclick="$('#dirchooser').fadeOut(300)">
@@ -99,7 +100,7 @@ $(document).ready(function(){
 
 	<input type="button" value="Open OPML" onclick="openOpmlFile()">
 	<input type="button" value="Drag in OPML" onclick="$('#dropZone').fadeIn(300)">
-	<input type="button" value="Choose dir" onclick="$('#dirchooser').fadeToggle(300); $('#workingdirspan').html(gWorkingDir);">
+	<input type="button" value="Choose dir" onclick="showDirs()">
 	<input type="button" value="Save" onclick="showSaveDialog()" id="savebtn">
 	
 	<input type="button" value="Save As"  onclick="saveFile()">

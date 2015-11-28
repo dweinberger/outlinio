@@ -10,9 +10,11 @@
 	clear:both;
 }
 .line{
-	font-size: 14pt;
+	/* 
+font-size: 14pt;
 	font-family:Arial, Georgia, Palatino, Bookman, Times New Roman, serif;
 	color:blue;
+ */
 	position: relative;
 	height: auto;
 	/* overflow: hidden; */
@@ -32,9 +34,11 @@ p {
 	margin-left = 0px;
 }
 
+
 .underlined{
 	text-decoration:underline;
 }
+/* this becomes the default for lines beyond the defined indents */
 textarea{
 	font-family:Georgia, Palatino, Bookman, Times New Roman, serif;
 	height:15px;
