@@ -33,8 +33,8 @@
 		<script type="text/javascript" src="./js/outlinio_04.js"></script>
 		<!-- Thanks, http://www.openjs.com/scripts/events/keyboard_shortcuts/-->
 		
-	<!-- DEBUG!!! Uncomment this to get Dropbox back ----------    
-	script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="7xu5g8mzcmlu1tk"></script-->	
+	<script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="7xu5g8mzcmlu1tk"></script>
+		
 		
 <script language="javascript" type="text/javascript">
 
@@ -52,14 +52,41 @@ $(document).ready(function(){
 </head>
 
 <body>
+<span id="uploadDB"></span>
+	<a href="https://www.hyperorg.com/currentOutline.txt" class="dropbox-saver">Click here to save.</a>
+	<!-- ======== UI SLIDERS============ -->
+	<!-- Open OPML -->
+		<div id="opendiv" class="panel">Open OPML File <br />
+			<span>Latest upload: <span id="latestupload" style="color: orange"></span></span>
+			<br />
+			 <form action="php/uploadOPMLtoRead.php" method="post" enctype="multipart/form-data">
+			<input type="file" value="" name="upload[]" multiple>
+			<input button type="submit" value="Upload the OPML file">
+			</form> <br />
+			<input  type="button" value="Open most recent upload" onclick="readOPML()">
+			<br />
+			<input type="button" value="Close" onclick="moveOut('#opendiv')">	 
+		</div>
+	<!-- Save File -->
+		 <div id="savediv">Save File<br>
+		 	<span id="savedirdialog">Saving to: <span id="savedir">[directory]</span></span>
+			<input type="button" value="Choose dir" onclick="moveOut('#savediv');showDirs()">
+			<input type="button" value="Save"  onclick="saveFile()">
+			<input type="button" value="Save As" onclick="showSaveDialog()" id="savebtn">
+			<br>
+			<input type="button" value="Close" onclick="moveOut('#savediv')">
+		</div>
+	<!-- ======== END UI SLIDERS============ -->
 
  <div  id="openloader"><div id="inneropenloader"><img src="images/waiting2.gif"<br />Loading the templates</div></div>
 
 	<div id="notifybanner" class="tool"  style="display:none;"></div>
-	<p id="revdate"></p>
+	
 	  
 	  <div id="dropZone" onclick="$('#dropZone').fadeOut(300)"><div id="dztext">Drop .OPML file<br /> Click anywhere to close</div></div>
-	  
+	  <input value="Open real" type="button" class="button"  onclick="moveIn('opendiv');">
+	  <!-- input value="Save real" type="button" class="button" onclick="ShowHideDiv('savediv');" -->
+	  <input value="Save real" type="button" class="button" onclick="moveIn('savediv');">
 	  <div id="saveDialog">
 	  	<p class="savetext">Save file (.opml will be added): <textarea id="savefilename"></textarea><br>
 	  	to <span id="savedirname"></span> <p>
@@ -72,9 +99,7 @@ $(document).ready(function(){
 	  
 	  <div id="dirchooser">
 	  <p style="font-size: 1.5em; color:yellow;font-family: 'Helvetica Neue',Helvetica,Verdana,Arial">Current Folder: <span id="workingdirspan"></span></p>
-	  	<div id="dirs">
-	  		Working...
-	  	</div>
+	  	<div id="dirs">Working...</div>
 	  	<div id="dirspanel">
 	  		<input type="button" value="close" onclick="$('#dirchooser').fadeOut(300)">
 	  		<input type="button" value="Refresh Directories" onclick="refreshDirs()">
@@ -86,11 +111,8 @@ $(document).ready(function(){
 	<input type="button" class="littlebutton" value="Show/hide" onclick="ShowHideDiv('toolsdiv')">
 	<div id="toolsdiv" class="toolsdiv"style="display:block;">
 	
-	 <!-- the form that does it -->OPEN EXISTING: 
-	<form action="php/uploadOPMLtoRead.php" method="post" enctype="multipart/form-data">
-	<input type="file" value="" name="upload[]" multiple>
-	<button type="submit">Open OPML</button>
-	</form>	
+
+	
 	
 	<form name="exporttypesform" enctype="multipart/form-data">
 	<span id="menuspan">
@@ -98,14 +120,11 @@ $(document).ready(function(){
 	<span id="openbtnspan">
 <input type="file" name="datafile" id="filetoopen" size="40">
 
-	<input type="button" value="Open OPML" onclick="openOpmlFile()">
+	<input type="button" value="OpenOPMLFile" onclick="openOpmlFile()">
 	<input type="button" value="Drag in OPML" onclick="$('#dropZone').fadeIn(300)">
-	<input type="button" value="Choose dir" onclick="showDirs()">
-	<input type="button" value="Save" onclick="showSaveDialog()" id="savebtn">
 	
-	<input type="button" value="Save As"  onclick="saveFile()">
 	</span>
-	<span id="keystrokectr" class="labeltext">5</span><span class="labeltext"> keystrokes till save 
+	<span id="keystrokectr" class="labeltext"></span><span class="labeltext"> keystrokes till save 
 	<input type=checkbox id="savechk" checked value="Save">
 	
 	<input type=button value="Backup" onclick="saveBackup();"></span>
@@ -142,13 +161,30 @@ $(document).ready(function(){
 
 <!-- OUTLINE BEGINS HERE -->
 
-<p id="titleel"><textarea id="titletxtarea" class="titletextarea" onclick="noteSpot(this)"; >TITLE</textarea>
-	
+<div id="titleel"><textarea id="titletxtarea" class="titletextarea" onclick="noteSpot(this)"; >
+	TITLE</textarea>
+</div>	
 	<div  id="startingdiv"></div>
 	
 	<div id="enddiv"></div>
 	<div id="status"></div>
+	<div id="revdate"></div>
 	
-
+	
+	
+	
+	
+    <!--- TRANSOVERLAY -->
+    <div id="transoverlay">
+    	<!-- close button -->
+    	<br><br><input type="button" value="Close" onclick="closeOverlay()" id="closeOverlayBtn">
+    
+	
+		
+		
+	
+    
+    </div> 
+	<!-- END TRANSOVERLAY -->
 </body>
 </html>

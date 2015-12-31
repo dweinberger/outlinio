@@ -5,6 +5,7 @@ var revdate= "Oct. 30, 2015";
 
 
 // Global Preferences
+var gDebug = true; // debug it?
 var gDownloadDir = "Downloads";
 var savePath = "http://localhost/~weinbergerd/outlinio4/";
 var backupDirectory = "./outline_backups/";
@@ -15,7 +16,7 @@ var opendefault_pref = false;
 var gMaxIndents = 12;
 var gdefaultfile = "test1.opml"; //"outlinio_default.opml";
 var gHighestLevel = 0;
-var gCurrentEl=null; 
+var gCurrentTextarea=null; 
 var keyctr=0;
 var gprevcontent;
 var gclass;
@@ -25,7 +26,6 @@ var browsertype ="";
 var treeArray = new Array();
 var glevel = 0;
 var gindent = 30;
-var gDebug = true; // debug it?
 var gFileTitle = "";
 var gDir = new Array(); // directory structure
 var gRootdir = "Dropbox";
@@ -52,8 +52,13 @@ function init(){
 
   assignKeys();
   initDropZone();
-//   initDefinedClasses(); // add indent to .L div classes
+ initDropbox();
+  getLatestUpload(); // load name of latest file uploaded to be opened
   
+//   initDefinedClasses(); // add indent to .L div classes
+  // make space above first outline line droppable
+  //     so can drag lines above the first
+  makeDroppable($("#startingdiv"));
   
  
 
@@ -90,39 +95,39 @@ function init(){
  
 	
 	var firstel = document.getElementById("l0");
-	//gCurrentEl = firstel;
+	//gCurrentTextarea = firstel;
 	
 	// dropbox
 	
-	var options = {
-		error: function(e){
-			alert("error:" + e);
-		},
-		success: function(files){
-			readDropbox(files[0].link);
-			// https://www.nczonline.net/blog/2010/05/25/cross-domain-ajax-with-cross-origin-resource-sharing/
-			
-// 			$.ajax({ 
-// 				url: "./php/downloadDropboxFile.php", 
-// 				//dataType: 'jsonp',
-// 				success: function(data) { 
-// 					 var d = data;
-// 					 $("#show").html(d);
-// 					
-// 					  $.ajax({
-//  					 	url: "./php/downloadDropboxContents(ilink)",
-//  					 	success: function (cont){
-//  					 		alert(cont);
-//  					 	}
-//  					 	});
-// 					}
-// 				});
-		
-			
-		},
-		linkType: "download"
-		}
-		
+// 	var options = {
+// 		error: function(e){
+// 			alert("error:" + e);
+// 		},
+// 		success: function(files){
+// 			readDropbox(files[0].link);
+// 			// https://www.nczonline.net/blog/2010/05/25/cross-domain-ajax-with-cross-origin-resource-sharing/
+// 			
+// // 			$.ajax({ 
+// // 				url: "./php/downloadDropboxFile.php", 
+// // 				//dataType: 'jsonp',
+// // 				success: function(data) { 
+// // 					 var d = data;
+// // 					 $("#show").html(d);
+// // 					
+// // 					  $.ajax({
+// //  					 	url: "./php/downloadDropboxContents(ilink)",
+// //  					 	success: function (cont){
+// //  					 		alert(cont);
+// //  					 	}
+// //  					 	});
+// // 					}
+// // 				});
+// 		
+// 			
+// 		},
+// 		linkType: "download"
+// 		}
+// 		
 	// DEBUG -- uncomment these to get Dropbox working
 	//var button = Dropbox.createChooseButton(options);
 	//document.getElementById("dropboxbutton").appendChild(button);
@@ -200,7 +205,77 @@ function init(){
 // }
 }
 
-//--------- SHOW SELECTED PROJECT IN CO<BO BOX
+function initDropbox(){
+		
+	var opts= {
+				success: function(files) { 
+					var filename = files[0].link;
+					filename = filename.replace("dl=0","dl=1");
+					alert(filename);
+					 $.ajax({
+					 	url: "./php/downloadDropboxContents2.php",
+					 	data: "src=" + filename,
+					 	success: function(cont){
+					 		alert(cont);
+					 	},
+					 	error: function(e){
+					 		alert(e.responseText);
+					 	}
+					 	});
+					},
+		multiselect: false,
+		extensions: ['.txt','.opml'],
+		linkType: "download"
+	};	
+	var button = Dropbox.createChooseButton(opts);
+	document.getElementById("uploadDB").appendChild(button);
+	
+	
+	var saverOpts={ 
+			files: [
+				// You can specify up to 100 files.
+				//{'url': 'http://localhost/outlinio4/currentFile.txt', 'filename': '_currentFile.txt'},
+				{'url': 'http://www.hyperorg.com/testdropbox.html', 'filename': '_hyperorgFile.txt'}
+				//https://www.dropbox.com/s/cucaeha88kfkujk/connecticut%20yankee.txt
+			],
+
+			// Success is called once all files have been successfully added to the user's
+			// Dropbox, although they may not have synced to the user's devices yet.
+			success: function () {
+				// Indicate to the user that the files have been saved.
+				alert("Success! Files saved to your Dropbox.");
+			},
+
+
+			error: function (errorMessage) {
+				alert(errorMessage);
+			}
+	};
+	
+	
+	var upbutton =  Dropbox.createSaveButton(saverOpts);;
+	document.getElementById("uploadDB").appendChild(upbutton);		
+
+}
+
+function saveDBfile(){
+		var tmp = "junk";
+	// write the file to hyperorg
+	$.ajax({
+		url: "http://www.hyperorg.com/saveToDropbox.php",
+		//data: "src=" + filename,
+		success: function(cont){
+			alert(cont);
+			
+		},
+		error: function(e){
+			alert(e.responseText);
+		}
+		});
+	
+}
+
+//--------- SHOW SELECTED PROJECT IN COMBO BOX
 function indicateSelectedTheme(theme){
 	 var ddl = document.getElementById("themeselectlist");;
      for (var i = 0; i < ddl.options.length; i++) {
@@ -265,7 +340,8 @@ function loadDirs(){
         url: "./php/readdirsfile.php",
 		//async: false,
 		success: function(dirs){
-			if ( ($("#dirs").text() == 'Working...') || ($("#dirs").text() == '')){
+			var dirtext = $("#dirs").text();
+			if ( (dirtext  == 'Working...') || (dirtext == '')){
            		buildDirSelector(dirs);
            	}
         },
@@ -291,58 +367,59 @@ function initVariables(){
 		//fitToContent(lines[i]);
 	}
 	
-	var gCurrentEl=null; 
+	var gCurrentTextarea=null; 
 	var keyctr=0;
 }
 
 function assignKeys(){
   // uses shortcuts.js : http://www.openjs.com/scripts/events/keyboard_shortcuts/#keys
+  	// backspace
+
     shortcut.add("Tab",function() {
-		operateOnLine(gCurrentEl, "INDENT");
+		operateOnLine(gCurrentTextarea, "INDENT");
 	});
 	shortcut.add("Shift+Tab",function() {
-		operateOnLine(gCurrentEl, "OUTDENT");
+		operateOnLine(gCurrentTextarea, "OUTDENT");
 	});
 // 	shortcut.add("Right",function() {
-// 		operateOnLine(gCurrentEl, "INDENT_ONE_LINE");
+// 		operateOnLine(gCurrentTextarea, "INDENT_ONE_LINE");
 // 	});
 // 	shortcut.add("Left",function() {
-// 		operateOnLine(gCurrentEl, "OUTDENT_ONE_LINE");
+// 		operateOnLine(gCurrentTextarea, "OUTDENT_ONE_LINE");
 // 	});
 	shortcut.add("Shift+Right",function() {
-		operateOnLine(gCurrentEl, "INDENT_ONE_LINE");
+		operateOnLine(gCurrentTextarea, "INDENT_ONE_LINE");
 	});
 	shortcut.add("Shift+Left",function() {
-		operateOnLine(gCurrentEl, "OUTDENT_ONE_LINE");
+		operateOnLine(gCurrentTextarea, "OUTDENT_ONE_LINE");
 	});
 	shortcut.add("Enter",function() {
-		if (gCurrentEl == null){
+		if (gCurrentTextarea == null){
 			var curel = $("#startingdiv");
 		}
 		else {
-			var curel = gCurrentEl;
+			var curel = gCurrentTextarea;
 		}
 		createNewLine(curel);
 	});
 	shortcut.add("Shift+Enter",function() {
-		insertString(gCurrentEl, String.fromCharCode(13)+String.fromCharCode(10));
+		insertString(gCurrentTextarea, String.fromCharCode(13)+String.fromCharCode(10));
 	});
-	// backspace
-	shortcut.add(String.fromCharCode(8),
-	function() {
-		deleteChar(gCurrentEl);
-	});
+
 	// shift plus
 	shortcut.add("Shift+" + String.fromCharCode(43),function() {
-		operateOnLine(gCurrentEl,"SHOW");
+		operateOnLine(gCurrentTextarea,"SHOW");
+	});
+	shortcut.add("Backspace",function() {
+			deleteChar(gCurrentTextarea);
 	});
 	//minus
 	shortcut.add("Shift+" + String.fromCharCode(45),function() {
-		operateOnLine(gCurrentEl,"HIDE");
+		operateOnLine(gCurrentTextarea,"HIDE");
 	});
 	// up arrow
 	shortcut.add("Up",function() {
-		moveCursor(gCurrentEl,"UP");
+		moveCursor(gCurrentTextarea,"UP");
 	});
 	// down arrow
 	shortcut.add("Down",function() {
@@ -350,7 +427,7 @@ function assignKeys(){
 		$('#status').html("DOWN");
 		$('#status').hide("250");
 		$('#status').show("250");
-		moveCursor(gCurrentEl,"DOWN");
+		moveCursor(gCurrentTextarea,"DOWN");
 	});
 	shortcut.add("Meta+S", function(){
 		saveFile("QUIET");
@@ -361,7 +438,7 @@ function assignKeys(){
 
 function keyWasPressed(){
 	// is it a text area that needs to be resized?
-	//fitToContent(gCurrentEl);
+	//fitToContent(gCurrentTextarea);
 	// count keys and trigger doc save
 	keyctr++;
 	if (document.getElementById("savechk").checked){
@@ -563,8 +640,8 @@ function setSelectionRange(input, selectionStart, selectionEnd) {
 }
 
 // thank you http://stackoverflow.com/questions/499126/jquery-set-cursor-position-in-text-area
-function setCaretToPos (input, pos) {
-  setSelectionRange(input, pos, pos);
+function setCaretToPos (el, pos) {
+  setSelectionRange(el, pos, pos);
 }
 
 function deleteChar(el){
@@ -593,21 +670,43 @@ function deleteChar(el){
 		return
 	}
 	else { // blank line, so delete it
-		if ($(el).attr("id") != "titletxtarea"){
-			removeLine(el);
+		// make sure it's a div
+		if (el.type == "textarea"){
+			el = $(el).parent()[0];
 		}
+		// if it's the only line left, don't delete the line
+		var prev = $(el).prev()[0];
+		if ($(prev).attr("id") == "startingdiv"){
+			return;
+		}
+		// not the only line left, so remove it	
+		removeLine(el);
+		gCurrentTextarea = prev;
+		// set cursor into next line
+		
+		if ($(prev).hasClass("linediv")){
+			// get the textarea
+			var texta = getTextareaFromDiv(prev);
+			var endspot = $(texta).val().length;
+			setCaretToPos(texta,endspot);	
+		}
+		
 	}   
 }
 
 function removeLine(el){
 	// el is the textarea
-	
-	
+	// if it is, get the div
+	if (el.type == "textarea"){
+		div = el.parentNode;
+	}
+	else {
+		div = el;
+	}
    // is the div hidden? If so, remove all children	
-   var div = el.parentNode; 
    var img =  ($(div).find("img"))[0];
    var src = $(img).attr("arrow");
-   if (src = "down"){
+   if (src == "down"){
 		var hidden = false;
    }	
    else {
@@ -618,6 +717,7 @@ function removeLine(el){
    	if ((!hidden) && ($(el).attr("id") != "0")){
    		var grandpar = div.parentNode;
    		grandpar.removeChild(div);
+   		updateArrows();
    		return false; 
    	}
    	
@@ -628,10 +728,16 @@ function removeLine(el){
 			var grandpar = childs[i].parentNode;
 			 grandpar.removeChild(childs[i]);
 		}
+		updateArrows();
 }
 function getSelectedText(){
     // puts them into globals
-    var el = gCurrentEl;
+    var el = gCurrentTextarea;
+    // is el a textarea?
+    if (el.type != "textarea"){
+    	el = $(gCurrentTextarea).find("textarea").eq(0)[0];
+    	gCurrentTextarea = el;
+    }
     selend = el.selectionEnd;
     selstart = el.selectionStart;
     seltext = el.value.substring(selstart, selend);
@@ -686,7 +792,7 @@ function visitEveryLine(operation){
 
 function getAllChildrenOfLine(d){
 	var cs = new Array;
-	cs.push(d); // add the first
+	cs.push(d); // add the first. (Why?)
 	var done = false;
 	var startinglevel = getLevel(d);
 	var next, current = d;
@@ -709,28 +815,27 @@ function getAllChildrenOfLine(d){
 }
 
 
-function operateOnLine(cur,verb){
+function operateOnLine(currentdiv,verb){
 	// indent from this line to next line of equal level or higher
 	
-	// for some reason, gcurrentel is being set to the textarea. hack:
-	if ($(cur).is("textarea")){
-		gCurrentEl = cur.parentNode;
-		cur = gCurrentEl;
+	// Make sure currentdiv is the div, not the textarea
+	if ($(currentdiv).is("textarea")){
+		currentdiv = currentdiv.parentNode;
 	}
-	// get gCurrentEl indent level
-	var curlevel = getLevel(cur);
+	// get gcurrentdivrentTextarea indent level
+	var currentdivlevel = getLevel(currentdiv);
 	// check for maximums
-	if ((verb == "OUTDENT") && (curlevel <= 0)) { // bail if already 1
+	if ((verb == "OUTDENT") && (currentdivlevel <= 0)) { // bail if already 1
 		return;
 	}
-	//if ((verb == "INDENT") && (curlevel == gMaxIndents)) { // bail if too many
+	//if ((verb == "INDENT") && (currentdivlevel == gMaxIndents)) { // bail if too many
 	//	return;
 	//}
-	var el = cur;
+	var el = currentdiv;
 	// indent the original line
 	
 	if ((verb == "INDENT") || (verb == "OUTDENT")) {
-		var childs = getAllChildrenOfLine(cur);
+		var childs = getAllChildrenOfLine(currentdiv);
 		for (var i=0; i < childs.length; i++){
 			indentLine(childs[i], verb);
 		}
@@ -808,21 +913,23 @@ function nextDiv(d){
 }
 
 function getTextareaFromDiv(d){
-	var e = d.firstChild;
-	if (e.tagName != "TEXTAREA"){
-		var don = false;
-		while (don == false) {
-			e = e.nextSibling;
-			if (e == null) {
-				don = true;
-				e = "NO TEXTAREA";
-			}
-			if (e.tagName == "TEXTAREA") {
-					don = true;
-				}
-			}
-		return e;
-	}
+	var e = $(d).find("textarea")[0]; //.firstChild;
+	// if (e.tagName != "TEXTAREA"){
+// 		var don = false;
+// 		while (don == false) {
+// 			e = e.nextSibling;
+// 			if (e == null) {
+// 				don = true;
+// 				e = "NO TEXTAREA";
+// 			}
+// 			if (e.tagName == "TEXTAREA") {
+// 					don = true;
+// 				}
+// 			}
+// 		return e;
+// 	}
+
+return e;
 	
 }
 
@@ -876,7 +983,7 @@ function indentLine(div, which){
 }
 
 function getLevel(o){
-	// return integer of gCurrentEl indent level
+	// return integer of gCurrentTextarea indent level
 	var level = $(o).attr("level");
 	if (level == null) {level = 0;}
 	//return parseInt(level);
@@ -971,7 +1078,7 @@ function selectorExists(selector) {
       
 function createNewLine(div){
 	// div= parent of text area where you want to create new line
-	//var div = gCurrentEl.parentNode;
+	//var div = gCurrentTextarea.parentNode;
 	
 	// if div is a textarea, then get its parent
 	if ($(div).is("textarea")){
@@ -1036,7 +1143,7 @@ function createNewLine(div){
 	newtextarea.setAttribute("id", gidstr);
 	newdiv.appendChild(newtextarea);
 	newtextarea.focus();
-	gCurrentEl = newtextarea;
+	gCurrentTextarea = newtextarea;
 	if (gDebug){
 		$(newtextarea).val(gidstr + "\tLEVEL: " + levelstr );
 	}
@@ -1065,6 +1172,7 @@ function createNewLine(div){
 		 }
 	}
 	})
+	visitEveryLine("UPDATEARROWS");
 }
 
 function swapStyleSheet(sheet){
@@ -1077,14 +1185,15 @@ function autoresize(ta){
 }
 function noteSpot(o){
 	// plop a textarea in
-	gCurrentEl = o; // update global
+	gCurrentTextarea = o; // update global
 }
 
 function changeArrow(o){
-	// w = gCurrentEl state, in text; 0 = obj
+	// w = gCurrentTextarea state, in text; 0 = obj
 	var s = o.getAttribute("src");
 	var w = o.getAttribute("arrow");
-	gCurrentEl = o.parentNode; // update the gCurrentEl pointer
+	var div = o.parentNode;
+	//gCurrentTextarea = o.parentNode; // update the gCurrentTextarea pointer
 	if (w == "right") { // there's stuff hidden
 		o.setAttribute("src", "images/down.png");
 		o.setAttribute("arrow", "down");
@@ -1094,9 +1203,12 @@ function changeArrow(o){
 		o.setAttribute("arrow", "right");
 	}
 	// do it
-	var childs = getAllChildrenOfLine(gCurrentEl);
-	for (var i=0; i < childs.length; i++){
-		if (childs[i] !== gCurrentEl){
+	var childs = getAllChildrenOfLine(div);
+	// start at 1 because first is the original div, weirdly
+	for (var i=1; i < childs.length; i++){
+		if (childs[i] == gCurrentTextarea){
+			gCurrentTextarea = $(childs[i]).prev().find("textarea")[0];
+		}
 			if (w=="down"){
 				$(childs[i]).slideUp(200);
 			}
@@ -1104,7 +1216,7 @@ function changeArrow(o){
 				$(childs[i]).slideDown(200);
 			}
 		}
-	}
+	
 	
 }
 
@@ -1197,7 +1309,9 @@ function saveFile(mode){
 		 data: {body: body, saveDir : saveDir, filename : filename},
 		 //async: false,
 		 success: function(data) {
-		    notify(filename + " saved to " + gWorkingDir, "OK");
+		 	if (mode != "QUIET"){
+		    	notify(filename + " saved to " + gWorkingDir, "OK");
+		    }
 		   },
 		  error: function (e){
 			if (e.statusText != "OK"){
@@ -1512,18 +1626,18 @@ function buildOPML(){
 		textel = divs[i].firstChild.nextSibling;
 		var xmlvalue = textel.value.encodeXML();
 		
-		// --next level is higher than gCurrentEl, then we have an indent and need an open tag
+		// --next level is higher than gCurrentTextarea, then we have an indent and need an open tag
 		if ( nextlev > lev) {
 			b = b + "<outline text=\"" + xmlvalue + "\">\r";
 				openbranches.push(lev); //  record that we have an open branch			
 			} //endif if nextlev > lev
 			
-		// --nextlevel is lower or equal than gCurrentEl, then outdent, so close it up
+		// --nextlevel is lower or equal than gCurrentTextarea, then outdent, so close it up
 		else { 
 			b = b + "<outline text=\"" + xmlvalue + "\"/>\r";
 		// check if anything else has to close
 			// Strategy: Whenever a line is closed (i.e., next is lower or equal level)
-			// close the tag. Whenever one opens (next is higher), push gCurrentEl level
+			// close the tag. Whenever one opens (next is higher), push gCurrentTextarea level
 			// onto stack. Whenever line closes, pop the stack. If stack is higher or
 			// equal, then add </outine>. Repeat until stack is equal to or lower than
 			// next.
@@ -1568,6 +1682,41 @@ function openDefault(){
    }
 }
 
+function getLatestUpload(){
+	$.ajax({
+		type: "POST",
+		//url: "./php/latestUpload.php",
+		url: "php/find_latest_upload.php",
+		success: function(data){
+			$("#latestupload").text(data);
+		},
+		 error: function (e){
+			notify("Couldn't find latest uploaded OPML file", "ERROR");
+			$("#latestupload").text("No file found");
+		}
+	});
+}
+
+function readOPML(){
+	// file has been uploaded
+	// now get most recently uploaded and load it
+	var latest = $("#latestupload").text();
+	notify("Reading " + latest);
+	$.ajax({
+		type: "POST",
+		//url: "./php/latestUpload.php",
+		url: "php/find_and_parse_latest_upload.php",
+		success: function(data){
+			//$("#latestupload").text(data);
+			parseOpmlJson(data);
+		},
+		 error: function (e){
+			notify("ERROR loading file: " + e.statusText, "ERROR");
+		}
+	});
+
+}
+
 function openOpmlFile(txt){
 	// takes text from drag and drop
 	
@@ -1609,9 +1758,9 @@ function openOpmlFile_File(fn){
 		}
 	}
 
-var jsonarray = new Array();
-var json;
- $.ajax({
+	var jsonarray = new Array();
+	var json;
+	 $.ajax({
                  type: "POST",
                  url: "php/opml_parser.php", 
                  data: "filename=" + fn,
@@ -1637,7 +1786,7 @@ var json;
 function parseOpmlJson(json){
 	// completes the job once parsed opml comes back as json
 	    //var jsonarray = JSON.parse(json);
-	var jsonarray = json;
+	var jsonarray = JSON.parse(json);
 	// get the doc title   
     document.getElementById("titletxtarea").value = jsonarray["title"];
 			
@@ -1647,7 +1796,8 @@ function parseOpmlJson(json){
 	$(".linediv").remove();
     var i, diva, lev, txt;
     
-    barray = jsonarray["content"];
+   // var barray = jsonarray["content"];
+   var barray = jsonarray["content"];
     // reset the globals if there's any content to this
     if (barray.length > 0) {
     	initVariables();
@@ -1754,7 +1904,7 @@ function createNewLineDiv(idint, levelint, whicharrow, whichtext){
 	newtextarea.setAttribute("id", idint + "");
 	newdiv.appendChild(newtextarea);
 	newtextarea.focus();
-	gCurrentEl = newtextarea;
+	gCurrentTextarea = newtextarea;
 	if (gDebug){
 		$(newtextarea).val(idint + "\tLEVEL: " +  "LEVEL: " + (levelint + "") );
 	}
@@ -1844,15 +1994,91 @@ function updateArrows(){
 	visitEveryLine("UPDATEARROWS");
 }
 
+function moveIn(which){
+	var div = "#" + which;
+	
+	// if clicking while it's still visible, then hide it
+	if ($(div).css("display") !== "none"){
+		moveOut(div);
+		return
+	}
+	
+	// if save dialog, add in name of directory
+	if (which == "savediv"){
+		$("#savedir").text(gWorkingDir);
+	}
+	
+	 $(div).css("top","0");
+	$(div).slideDown(500);
+	//$(div).animate({top: "0px"},500);
+}
+
+function moveOut(which){
+		$(which).animate({top: "-250px"},500,function (){
+			$(which).hide();
+			});
+		//$(which).hide();
+		
+}
+
 function ShowHideDiv(which){
     // show or hide a div
-    whichdiv = document.getElementById(which);
-    if (whichdiv.style.display == 'none') { // show it
+    
+    // hide any existing widget in case user hits a button
+    // while the widget is still visible
+    var existingID = $('#transoverlay').find('div:visible:first').attr("id");
+    if ( (existingID !== undefined) && (existingID == which)) {// if hitting the same button
+    	$("#" + existingID).fadeOut(300);
+    	$("#transoverlay").fadeOut(400);
+    	return
+    }
+    else{
+    if (existingID !== undefined) {
+    	$("#" + existingID).fadeOut(300);
+    	}
+    }
+    
+    // toggle the translucent overlay
+    if (which !== "html"){
+    	$("#transoverlay").fadeIn(400);
+    }
+       
+    var whichdiv = document.getElementById(which);
+    if (( whichdiv.style.display == 'none') || (whichdiv.style.display == "")) { // show it
         $(whichdiv).show("slow");
-		   }
-    else {
-        $(whichdiv).hide("slow");
+        if (which == "html") {
+            updatehtml();
         }
+		// go to it
+// 		switch (which){
+// 			case "savediv":
+// 			    document.location = "#linksspot"; 
+// 				break;
+// 			case "imagediv":
+// 			    document.location = "#imagespot"; 
+// 				break;
+// 			case "wrapdiv":
+// 			    document.location = "#wrapspot"; 
+// 				break;
+// 			case "tablediv":
+// 			    document.location = "#tablespot"; 
+// 				break;	
+// 			case "macroexpanddiv":
+// 			    document.location = "#macroexpanddiv"; 
+// 			    break;
+// 			case "postdiv":
+// 				document.location = "#postdive";
+// 			break;					
+// 			
+// 		}
+    }
+    else 
+        $(whichdiv).hide("slow");
+}
+function closeOverlay(){
+	$("#transoverlay").fadeOut(400);
+	$(".panel").hide();
+	
 }
 function popup(){
 	alert("pop");
@@ -1860,7 +2086,7 @@ function popup(){
 function moveCursor(el,direction){
   // moves cursor into next visible line
   //get parent of textarea
-  el = $(gCurrentEl).parent(); 
+  el = $(gCurrentTextarea).parent(); 
   if (direction == "DOWN"){
 		var nexteldiv = $(el).next()[0];
 		var nextel = $(nexteldiv).find("textarea")[0];
@@ -1902,20 +2128,20 @@ function moveCursor(el,direction){
  
   if ((next_el !== null) && (next_el !== "undefined")) { 
   	$(next_el).find("textarea").focus(); 
-  	gCurrentEl = next_el;
+  	gCurrentTextarea = next_el;
   }
   //childs[targetel].focus();
 
 }
 
 function moveLine(el,direction){
-	 el = gCurrentEl;
+	 el = gCurrentTextarea;
 	
 	// get all the children
 	var a = new Array();
 	var done = false;
 	var el2,el3,lev2,lev3,i;
-	var parcurrent = el.parentNode; // get container of gCurrentEl textbox - whatwe want to move
+	var parcurrent = el.parentNode; // get container of gCurrentTextarea textbox - whatwe want to move
 	el2 = parcurrent;
 	lev2 = getLevel(el2);
 	a.push(el2);
@@ -1999,6 +2225,10 @@ function makeDroppable(obj){
 		
 			var draggedparent = $(ui.draggable).parent();
 			var targetdiv = $(this).parent();
+			// if div above first line, make it the target
+			if ($(this).attr("id") == "startingdiv"){
+				targetdiv = $("#startingdiv");
+			}
 			
 			// ---- Logic
 			//1. if dragging single item over single item:
