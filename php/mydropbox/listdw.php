@@ -8,7 +8,7 @@ if (!isset($access_token)) {
 
 try {
     // Start a new Dropbox session
-    // The access token should exist
+    // The access token should be defined
     // The session should verify if the token is valid and throw an exception
     $session = new DropboxSession(
         $config["dropbox"]["app_key"], 
@@ -18,21 +18,12 @@ try {
     );
     $client = new DropboxClient($session);
 
-    $path = (!empty($_GET["path"])) ? $_GET["path"] : "/test.png";
-    $dest = $config["app"]["datadir"] . "/" . basename($path);
+    $path = (!empty($_GET["path"])) ? $_GET["path"] : "/temp";
 
-    // Download a file
-    if ($file = $client->getFile($path, $dest)) {
-        if (!empty($dest)) {
-            unset($file["data"]);
-            echo "<p>File saved to: <code>" . $dest . "</code></p>";
-            echo "<pre>" . print_r($file, true) . "</pre>";
-        }
-        else {
-            header("Content-type: " . $file["mime"]);
-            echo $file["data"];
-            exit;
-        }
+    // List contents of home directory
+    if ($home = $client->metadata($path)) {
+        echo "<p>Metadata content for <code>" . $path . "</code></p>";
+        echo "<pre>" . print_r($home, true) . "</pre>";
     }
 }
 catch (Exception $e) {

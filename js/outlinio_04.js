@@ -1,20 +1,34 @@
 	/**
  * @author David Weinberger
  */
-var revdate= "Oct. 30, 2015";
+var revdate= "March 26, 2016";
 
 
 // Global Preferences
-var gDebug = true; // debug it?
+var gDebug = false; // debug it?
 var gDownloadDir = "Downloads";
 var savePath = "http://localhost/~weinbergerd/outlinio4/";
 var backupDirectory = "./outline_backups/";
+var gDropboxFullRoot  = "./Dropbox/";
+var gDropboxVisibleRoot = "/Dropbox/";
+var gDropboxName = "";
+
+// -- file info
+var gFileName = ""; // name of the saved file
+var gPathOnly  = ""; //  path w/o file name but with "Dropbox/"
+var gDisplayFilePath = "" ; //  unused? // path w/o file without "./php"
+var gFullPath  = ""; // full path with filename and Dropbox/
+var gRecentFiles = new Array();
+var gMaxRecentFiles = 10; // max recent files to list
+
+
+
 // how many keystrokes trigger a backup?
 var gKeysUntilSave = 100; 
-var opendefault_pref = false;
+var opendefault_pref = "PREVIOUS"; // PREVIOUS, DEFAULT or NEW
 // globals
 var gMaxIndents = 12;
-var gdefaultfile = "test1.opml"; //"outlinio_default.opml";
+var gCurrentFullPath = "test1.opml"; //"outlinio_default.opml";
 var gHighestLevel = 0;
 var gCurrentTextarea=null; 
 var keyctr=0;
@@ -29,7 +43,7 @@ var gindent = 30;
 var gFileTitle = "";
 var gDir = new Array(); // directory structure
 var gRootdir = "Dropbox";
-var gWorkingDir = gRootdir;
+gDisplayFilePath = gRootdir;
 var gStyles = new Array();
 
 
@@ -50,87 +64,103 @@ $.keymap = function() {};
 function init(){
 	
 
-  assignKeys();
-  initDropZone();
- initDropbox();
-  getLatestUpload(); // load name of latest file uploaded to be opened
+	assignKeys();
+	initDropZone();
+	initDropbox();
+	getLatestUpload(); // load name of latest file uploaded to be opened
+	gPathOnly = "Dropbox/";
+  // update keystroke counter
+  $("#keystrokectr").text(gKeysUntilSave);
   
 //   initDefinedClasses(); // add indent to .L div classes
   // make space above first outline line droppable
   //     so can drag lines above the first
   makeDroppable($("#startingdiv"));
   
- 
 
   // show rev date
   document.getElementById("revdate").innerHTML="Rev date:" + revdate;
+  
+  // get recent file list
+  	 $.ajax({
+                 type: "POST",
+                 url: "php/readRecentFiles.php", 
+                 success: function(data) {
+                 	data = decodeURIComponent(data);
+                 	data = data.replace("+"," ");
+                  	gRecentFiles = data.split(",");
+                  //	buildRecentFilesDiv();
+                  	notify(gRecentFiles.length + " read.");
+                   },
+                  error: function (e){
+                  	if (e.statusText !== "OK"){
+                  		notify("Failed to read recent files: " . e.statusText, "ERROR");
+                  	}
+                  	}
+             }); 
+  
   // Cookies
+  setCookie("path","Dropbox/");
+ // setCookie("filename","universitypresser-cocktail-napkin.opml");
+  
   whichBrowser();
-  var file2open = getCookie("lastfile");
-  if ((file2open !== null) && (file2open !== 'undefined')){
-  	gdefaultfile = file2open;
-  }
-  gdefaultfile = "default.opml";
-  if (opendefault_pref == true){
-  	openDefault();
-  	setCookie("lastfile", gdefaultfile);
+  gFileName = getCookie("filename");
+  gPathOnly = getCookie("path");
+  if ((gFileName!= "") && (gPathOnly != "")){
+  	gFullPath = gPathOnly + gFileName;
   }
   else{
+  	gFullPath= "";
+  }
+  // open previous, if we have the data
+  if ( (gPathOnly != "") && (gFileName != "") && (opendefault_pref == "PREVIOUS")){
+  	openOpmlFile_File(gFullPath);
+  }
+  // if not enough data, open default even if preference is for previous
+  if ( (gFullPath == "") && (opendefault_pref == "PREVIOUS")){
+  	openDefault();
+  	setCookie("path", "Dropbox/");
+  	setCookie("filename", "default.opml");
+  }
+  // open default
+  if (opendefault_pref == "DEFAULT"){
+  	openDefault();
+  	setCookie("path", "Dropbox/");
+  	setCookie("filename", "default.opml");
+  }
+	// open new
+  if (opendefault_pref === "NEW"){
   	createNewOutline();
   }
   
-  gWorkingDir=getCookie("workingdir");
-  if (gWorkingDir == undefined){
-  	gWorkingDir = gRootdir;
-  	var titletext = "Choose Directory. Currently: " + gRootdir;
-  }
-  else {
-  	var titletext = gWorkingDir;
-  }
-  $("#savebtn").attr("title",titletext);
-  $("#savedirname").html(gWorkingDir);
-  $("#savefilename").val($("#titletxtarea").val());
+  gDisplayFilePath = gFullPath;//.substr(p );
+  p = gDisplayFilePath.lastIndexOf("/");
+  gFileName = gDisplayFilePath.substr(p + 1); // get filename
+  gDisplayFilePath = gPathOnly;
+  $("#savedir1").text(gDisplayFilePath);
+  $("#savedir2").text(gDisplayFilePath);
+  $("#savedilename1").text(gFileName);
+  $("#savedilename2").text(gFileName);
+
+
+  $("#savebtn").attr("title",gFileName); // tooltip
+  $("#savefilenametextarea").val(gFileName);
   
-  
+   // init filetree browswer
+     $('#filetreediv').fileTree(
+     	{ 
+     	root: './php/Dropbox/' ,
+     	multiFolder: false,
+     	script: './jqueryFileTree.php'
+     	}, 
+     	function(file) {
+        	// it's a file, not a directory
+        	var p = file.lastIndexOf("/");
+        	
+    });
  
 	
 	var firstel = document.getElementById("l0");
-	//gCurrentTextarea = firstel;
-	
-	// dropbox
-	
-// 	var options = {
-// 		error: function(e){
-// 			alert("error:" + e);
-// 		},
-// 		success: function(files){
-// 			readDropbox(files[0].link);
-// 			// https://www.nczonline.net/blog/2010/05/25/cross-domain-ajax-with-cross-origin-resource-sharing/
-// 			
-// // 			$.ajax({ 
-// // 				url: "./php/downloadDropboxFile.php", 
-// // 				//dataType: 'jsonp',
-// // 				success: function(data) { 
-// // 					 var d = data;
-// // 					 $("#show").html(d);
-// // 					
-// // 					  $.ajax({
-// //  					 	url: "./php/downloadDropboxContents(ilink)",
-// //  					 	success: function (cont){
-// //  					 		alert(cont);
-// //  					 	}
-// //  					 	});
-// // 					}
-// // 				});
-// 		
-// 			
-// 		},
-// 		linkType: "download"
-// 		}
-// 		
-	// DEBUG -- uncomment these to get Dropbox working
-	//var button = Dropbox.createChooseButton(options);
-	//document.getElementById("dropboxbutton").appendChild(button);
 	
  // get the themes
  
@@ -177,14 +207,6 @@ function init(){
 		});
 		
 		
-	// 	fileref=document.createElement("link");
-// 		fileref.setAttribute("rel", "stylesheet");
-// 		fileref.setAttribute("type", "text/css");
-// 		fileref.setAttribute("href", "css/" + "default.css");
-// 		document.getElementsByTagName("head")[0].appendChild(fileref);
-		
-		
-		
  // set up the theme switching pulldown
  $('#themeselectlist').bind('change',function(w) {   
 			//$("this option[value='2']").text();
@@ -192,50 +214,78 @@ function init(){
 			swapStyleSheet(str);
 			});
 			
+	// save filename when lose focus on file rename textarea
+    $("#savefilenametextarea").blur(function(e) {
+    	//alert("t");
+    	gFileName = $("#savefilenametextarea").val();
+    	$("#savefilename1").text(gFileName);
+    	$("#filename2").text(gFileName);
+    	gCurrentFullPath = gPathOnly + gFileName;
+    	setCookie("fullpath",gCurrentFullPath);
+    });
+    
+			
 
- 
+}
 
-	// add listener to do key counter
-	// if ((browsertype == "firefox") || (browsertype == "opera") ||  (browsertype == "msie")) {
-// 		document.getElementById('biggestdiv').addEventListener('keypress', keyWasPressed, false);
-// 	}
-// 	else {
-// 	document.getElementById('biggestdiv').addEventListener('keyup', keyWasPressed, false);
-// 	}
-// }
+function gotNewDir(pathstr){
+	// get rid of "./php";
+	var p = pathstr.indexOf("./php");
+	if (p > -1){
+		pathstr = pathstr.substr(6);
+	}
+	
+	$("#savedir1").text(pathstr);
+	$("#savedir2").text(pathstr);
+	getFileGlobals(pathstr);
 }
 
 function initDropbox(){
-		
+	
+	// Chooser options
 	var opts= {
-				success: function(files) { 
-					var filename = files[0].link;
-					filename = filename.replace("dl=0","dl=1");
-					alert(filename);
-					 $.ajax({
-					 	url: "./php/downloadDropboxContents2.php",
-					 	data: "src=" + filename,
-					 	success: function(cont){
-					 		alert(cont);
-					 	},
-					 	error: function(e){
-					 		alert(e.responseText);
-					 	}
-					 	});
-					},
+		success: function(files) { 
+		
+			var filename = files[0].link;
+			filename = filename.replace("dl=0","dl=1");
+			$("#savefilename1").text(files[0].name);
+			//alert(filename);
+			 $.ajax({
+				url: "./php/downloadDropboxContents2.php",
+				data: {src : filename},
+				success: function(cont){
+					$("#busy").show();
+					openOpmlFile_File(filename);
+					$("#busy").hide();
+					getDropboxPath(filename);
+					var dbpath = gDisplayFilePath.substring(0, gDisplayFilePath.lastIndexOf("/") - 1);
+					setCookie("fullpath", filename);
+					//setCookie("workingdir",dbpath);
+					
+					
+				
+				},
+				error: function(e){
+					alert(e.responseText);
+				}
+				});
+			
+			},
 		multiselect: false,
-		extensions: ['.txt','.opml'],
+		extensions: ['.opml'],
 		linkType: "download"
 	};	
-	var button = Dropbox.createChooseButton(opts);
-	document.getElementById("uploadDB").appendChild(button);
-	
+	var online = false;
+	if (online){
+		var button = Dropbox.createChooseButton(opts);
+		document.getElementById("openChooser").appendChild(button);
+	}
 	
 	var saverOpts={ 
 			files: [
 				// You can specify up to 100 files.
 				//{'url': 'http://localhost/outlinio4/currentFile.txt', 'filename': '_currentFile.txt'},
-				{'url': 'http://www.hyperorg.com/testdropbox.html', 'filename': '_hyperorgFile.txt'}
+				{'url': 'http://www.hyperorg.com/testdropbox.html', 'filename': '/_atest/_hyperorgFile.txt'}
 				//https://www.dropbox.com/s/cucaeha88kfkujk/connecticut%20yankee.txt
 			],
 
@@ -243,7 +293,7 @@ function initDropbox(){
 			// Dropbox, although they may not have synced to the user's devices yet.
 			success: function () {
 				// Indicate to the user that the files have been saved.
-				alert("Success! Files saved to your Dropbox.");
+				notify("Success! Files saved to your Dropbox.");
 			},
 
 
@@ -252,10 +302,72 @@ function initDropbox(){
 			}
 	};
 	
-	
-	var upbutton =  Dropbox.createSaveButton(saverOpts);;
-	document.getElementById("uploadDB").appendChild(upbutton);		
+	if (online){
+ 	var upbutton =  Dropbox.createSaveButton(saverOpts);
+ 	document.getElementById("saveasdiv").appendChild(upbutton);		
+	}
+}
 
+function openRecentFiles(){
+	//updateRecentList();
+	buildRecentFilesDiv();
+	// populate it too.
+	
+// 	$("#recentfilelist").html(""); // clear it
+// 	// cycle through global array
+// 	for (i=0; i < gRecentFiles.length; i++){
+// 		var div = document.createElement("div");
+// 		$(div).attr("class", "recentfile");
+// 		$(div).html(gRecentFiles[i]);
+// 		$("#recentfileslist").append(div);
+// 	}
+// 	
+// 	// change color when mousedown
+// 	 $(".recentfile").mousedown(function(){
+//     	$(this).addClass("recentfilemousedown");
+//     });
+//     // change it back
+//     $(".recentfile").mousedown(function(){
+//     	$(this).removeClass("recentfilemousedown");
+//     });
+// 	// recent file list opens that file
+//     $(".recentfile").click(function(){
+//     	//alert("D");
+//     	var fname = "./Dropbox/" + $(this).text();
+//     	openOpmlFile_File(fname);
+//     });
+ 
+	// close the div
+	$("#recentdiv").slideToggle(400);
+}
+
+function getDropboxPath(link){
+	$.ajax({
+		type: "POST",
+		beforeSend: function (request)
+            {
+                request.setRequestHeader("Content-Type", "application/json");
+            },
+		url: "https://api.dropboxapi.com/2/sharing/get_shared_link_metadata?authorization=Bearer X84mk9NLswoAAAAAAAFT8mrNdrPxCr-NB1ycVPOeq9DqD7on5u-u6RUkzz1BAzu4",
+		data: JSON.stringify({url : link}),
+		success: function(cont){
+			
+			gDropboxFullPath  = cont.path_lower;
+			gDropboxPath = gDropboxFullPath.substring(0,gDropboxFullPath.lastIndexOf("/") - 1);
+			gDropboxName = gDropboxFullPath.substring(gDropboxFullPath.lastIndexOf("/") + 1);
+			$("#savedir1").text(gDropboxPath);
+			$("#savefilename1").text(gDropboxName);
+			//alert(cont.path_lower);
+			// set the saver button to this path_lower
+			//nope:
+			$("#db-saver-real").attr("href", "http://www.dropbox.com/cont.path_lower");
+			
+			
+		},
+		error: function(e){
+			alert(e.responseText);
+		}
+		});
 }
 
 function saveDBfile(){
@@ -277,7 +389,7 @@ function saveDBfile(){
 
 //--------- SHOW SELECTED PROJECT IN COMBO BOX
 function indicateSelectedTheme(theme){
-	 var ddl = document.getElementById("themeselectlist");;
+	 var ddl = document.getElementById("themeselectlist");
      for (var i = 0; i < ddl.options.length; i++) {
          if (ddl.options[i].text == theme) {
              if (ddl.selectedIndex != i) {
@@ -316,14 +428,14 @@ function getCookie(c_name)
 
 function showDirs(){
 	$('#dirchooser').fadeToggle(300); 
-	$('#workingdirspan').html(gWorkingDir);
+	$('#workingdirspan').html(gDisplayFilePath);
 	loadDirs();
 }
 
 function refreshDirs(){
 	$.ajax({
         type: "POST",
-        url: "./php/refreshdirs.php?rootdir=" + gRootdir,
+        url: "./refreshdirs.php?rootdir=" + gRootdir,
 		//async: false,
 		//data: {rootdir : gRootdir},
 		success: function(number_of_dirs){
@@ -332,16 +444,16 @@ function refreshDirs(){
         error: function(e){
 			alert(e.statusText + " Failed to get the folders in Dropbox");
         }
-    })
+    });
 }
 function loadDirs(){
 	$.ajax({
         type: "POST",
-        url: "./php/readdirsfile.php",
+        url: "./readdirsfile.php",
 		//async: false,
 		success: function(dirs){
 			var dirtext = $("#dirs").text();
-			if ( (dirtext  == 'Working...') || (dirtext == '')){
+			if ( (dirtext  === 'Working...') || (dirtext === '')){
            		buildDirSelector(dirs);
            	}
         },
@@ -372,68 +484,207 @@ function initVariables(){
 }
 
 function assignKeys(){
-  // uses shortcuts.js : http://www.openjs.com/scripts/events/keyboard_shortcuts/#keys
+  // uses $.Shortcuts.js : http://www.openjs.com/scripts/events/keyboard_shortcuts/#keys
   	// backspace
 
-    shortcut.add("Tab",function() {
-		operateOnLine(gCurrentTextarea, "INDENT");
+    $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Tab',
+   	 	enableInInput: true,
+    	handler: function() {
+    		if ( $(gCurrentTextarea).hasClass("line") == true){
+			operateOnLine(gCurrentTextarea, "INDENT");
+			}
+		}
 	});
-	shortcut.add("Shift+Tab",function() {
-		operateOnLine(gCurrentTextarea, "OUTDENT");
+    $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Shift+Tab',
+   	 	enableInInput: true,
+    	handler: function() {
+			operateOnLine(gCurrentTextarea, "OUTDENT");
+		}
 	});
-// 	shortcut.add("Right",function() {
+
+	
+	// $.Shortcuts.add("Shift+Tab",function() {
+// 		operateOnLine(gCurrentTextarea, "OUTDENT");
+// 	});
+// 
+// 	$.Shortcuts.add("Shift+Right",function() {
 // 		operateOnLine(gCurrentTextarea, "INDENT_ONE_LINE");
 // 	});
-// 	shortcut.add("Left",function() {
+// 	$.Shortcuts.add("Shift+Left",function() {
 // 		operateOnLine(gCurrentTextarea, "OUTDENT_ONE_LINE");
 // 	});
-	shortcut.add("Shift+Right",function() {
-		operateOnLine(gCurrentTextarea, "INDENT_ONE_LINE");
-	});
-	shortcut.add("Shift+Left",function() {
-		operateOnLine(gCurrentTextarea, "OUTDENT_ONE_LINE");
-	});
-	shortcut.add("Enter",function() {
-		if (gCurrentTextarea == null){
+
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Enter',
+   	 	enableInInput: true,
+    	handler: function() {
+		if (gCurrentTextarea === null){
 			var curel = $("#startingdiv");
 		}
 		else {
 			var curel = gCurrentTextarea;
 		}
 		createNewLine(curel);
-	});
-	shortcut.add("Shift+Enter",function() {
-		insertString(gCurrentTextarea, String.fromCharCode(13)+String.fromCharCode(10));
-	});
+		}
+	});		
 
-	// shift plus
-	shortcut.add("Shift+" + String.fromCharCode(43),function() {
-		operateOnLine(gCurrentTextarea,"SHOW");
-	});
-	shortcut.add("Backspace",function() {
-			deleteChar(gCurrentTextarea);
-	});
-	//minus
-	shortcut.add("Shift+" + String.fromCharCode(45),function() {
-		operateOnLine(gCurrentTextarea,"HIDE");
-	});
-	// up arrow
-	shortcut.add("Up",function() {
-		moveCursor(gCurrentTextarea,"UP");
-	});
-	// down arrow
-	shortcut.add("Down",function() {
-		
-		$('#status').html("DOWN");
-		$('#status').hide("250");
-		$('#status').show("250");
-		moveCursor(gCurrentTextarea,"DOWN");
-	});
-	shortcut.add("Meta+S", function(){
-		saveFile("QUIET");
-	});
+// 	$.Shortcuts.add("Enter",function() {
+// 		if (gCurrentTextarea === null){
+// 			var curel = $("#startingdiv");
+// 		}
+// 		else {
+// 			var curel = gCurrentTextarea;
+// 		}
+// 		createNewLine(curel);
+// 	});
+
+
+// 	$.Shortcuts.add("Shift+Enter",function() {
+// 		insertString(gCurrentTextarea, String.fromCharCode(13)+String.fromCharCode(10));
+// 	});
+
+// Insert line break
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Shift+Enter',
+   	 	enableInInput: true,
+    	handler: function() {
+			insertString(gCurrentTextarea, String.fromCharCode(13)+String.fromCharCode(10));
+		}
+	});	
+ // shift plus
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Backspace',
+   	 	enableInInput: true,
+    	handler: function() {
+			deleteChar();
+		}
+	});	
 	
+	// show on cmd-shift-plus 
+	 $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Alt+Shift+Plus',
+   	 	enableInInput: true,
+    	handler: function() {
+			operateOnLine(gCurrentTextarea, "SHOW");
+		}
+	});	
+	// Hide on cmd-shift-minus 
+	 $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Alt+Shift+Minus',
+   	 	enableInInput: true,
+    	handler: function() {
+			operateOnLine(gCurrentTextarea, "HIDE");
+		}
+	});		
+	
+
+// 	$.Shortcuts.add("Shift+" + String.fromCharCode(43),function() {
+// 		operateOnLine(gCurrentTextarea,"SHOW");
+// 	});
+// 	$.Shortcuts.add("Backspace",function(e) {
+// 			deleteChar();
+// 	});
+// 	//minus
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Shift+Right',
+   	 	enableInInput: true,
+    	handler: function() {
+			operateOnLine(gCurrentTextarea, "INDENT_ONE_LINE");
+		}
+	});	
+	
+// shift left arrow
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Shift+Left',
+   	 	enableInInput: true,
+    	handler: function() {
+			operateOnLine(gCurrentTextarea, "OUTDENT_ONE_LINE");
+		}
+	});	
+	
+
+// 	$.Shortcuts.add("Shift+" + String.fromCharCode(45),function() {
+// 		operateOnLine(gCurrentTextarea,"HIDE");
+// 	});
+// 	// up arrow
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Up',
+   	 	enableInInput: true,
+    	handler: function() {
+			moveCursor(gCurrentTextarea,"UP");
+		}
+	});	
+		
+
+// 	$.Shortcuts.add("Up",function() {
+// 		moveCursor(gCurrentTextarea,"UP");
+// 	});
+// 	// down arrow
+ $.Shortcuts.add({
+    	type: 'up',
+   	 	mask: 'Down',
+   	 	enableInInput: true,
+    	handler: function() {
+			moveCursor(gCurrentTextarea,"DOWN");
+		}
+	});		
+
+// 	$.Shortcuts.add("Down",function() {
+// 		
+// 		$('#status').html("DOWN");
+// 		$('#status').hide("250");
+// 		$('#status').show("250");
+// 		moveCursor(gCurrentTextarea,"DOWN");
+// 	});
+
+	
+	// save file command-S
+
+
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Alt+S',
+   	 	enableInInput: true,
+    	handler: function() {
+			saveFile("QUIET");
+		}
+	});		
+
+
+$.Shortcuts.start();
+// 	
 }
+
+function getElfromCaret(){
+	// 
+	var f1 = $(":focus");
+	// var f1 = $(f).children();
+// 	var f2 = f1[1];
+	var f= f1.context.activeElement; 
+	return f;
+// 	document.activeElement;	//http://stackoverflow.com/questions/1197401/how-can-i-get-the-element-the-caret-is-in-with-javascript-when-using-contentedi
+//    var node = document.getSelection().anchorNode;
+//    var n = node.nodeType;
+//    if ( n == 3 ){
+//    	return n;
+//    }
+//    else {
+//    	return    	 node.parentNode;
+//    	};
+}
+
 
 
 function keyWasPressed(){
@@ -443,7 +694,7 @@ function keyWasPressed(){
 	keyctr++;
 	if (document.getElementById("savechk").checked){
 		document.getElementById("keystrokectr").textContent = gKeysUntilSave - keyctr;
-		if (keyctr > gKeysUntilSave) {
+		if (keyctr >= gKeysUntilSave) {
 			keyctr = 0;
 			saveFile("QUIET");
 		}
@@ -495,7 +746,7 @@ function initDropZone(){
 
 
 //---------------- SET COOKIE
-function setCookie(cookieName,cookieValue) {
+function setCookie_unused(cookieName,cookieValue) {
  var today = new Date();
  var expire = new Date();
  var nDays = 1700; // about 5 yrs
@@ -504,7 +755,7 @@ function setCookie(cookieName,cookieValue) {
 }
 
 //---------------- GET COOKIE
-function getCookie(c_name)
+function getCookie_DUPE(c_name)
 {
 	 var i,x,y,ARRcookies=document.cookie.split(";");
 	 for (i=0;i<ARRcookies.length;i++)
@@ -616,9 +867,9 @@ function doGetCaretPosition (oField) {
   }
 
   // Firefox support
-  else if (oField.selectionStart || oField.selectionStart == '0')
+  else{ if (oField.selectionStart || oField.selectionStart == '0'){
     iCaretPos = oField.selectionStart;
-
+	}}
   // Return results
   return (iCaretPos);
 }
@@ -644,10 +895,76 @@ function setCaretToPos (el, pos) {
   setSelectionRange(el, pos, pos);
 }
 
-function deleteChar(el){
+
+
+function deleteChar(){
+	
+	// what element are we in?
+	//var div = getElfromCaret(); // what element is the caret in?
+	var el = getElfromCaret(); // get the text area
+	//var ell = document.getSelection();
+	//var el = el.anchorNode;
+	// get the text
+	var txt = $(el).val();
+	
+	// any text selected? Then delete it, and were done
+	var sels = getSelectedText();
+	if (sels[0] != sels[1]){
+		var newtxt = txt.substr(0,sels[0]) + txt.substr(sels[1]);
+		$(el).val(newtxt);
+		return;
+	}
+
+   // if we're in an outline line and it's a blank line,
+   // then go back a line
+	
+	if (($(el).hasClass("line")) && (txt == "")){
+	// check for empty lines
+		// if it's the only line left, don't delete the line
+		//get parent
+		var prevdiv = $(el).parent().prev();
+		var prevtextarea = getTextareaFromDiv(prevdiv);
+		//if ($(prevdiv).attr("id") == "startingdiv"){
+		if ($(prevdiv).hasClass("linediv") == false){
+			return;
+		}
+		// it's not the only line left, so delete it
+		else{
+			removeLine(el);
+			gCurrentTextarea = prevtextarea;
+			el = $(el).parent()[0];
+			txt = $(el).text();
+			// put cursor into the previous line
+			if ((prevtextarea != undefined) && ($(prevdiv).hasClass("linediv"))){
+				// get the textarea
+				//var texta = getTextareaFromDiv(prev);
+				var endspot = $(prevtextarea).val().length;
+				setCaretToPos(prevtextarea,endspot);
+				return	
+			}	
+		}
+	 }
+	 
+	 // text isn't empty. Whatever type of line, delete a character
+
+		// remove the character at the cursor because $.Shortcuts.js "propagate" crashes
+		var p = doGetCaretPosition(el);
+		if (p > 0) {
+			var s = txt.substring(0,p-1) + txt.substring(p);
+			$(el).val(s);
+			// set caret position
+			setCaretToPos(el, p - 1);
+		}
+		return
+	 
+}
+
+
+
+function deleteChar_bak(){
 	//el isthe textarea
 	
-	// any text selected??
+	// any text selected? Then delete something
 	var sels = getSelectedText();
 	if (sels[0] != sels[1]){
 		var txt = $(el).value();
@@ -655,11 +972,18 @@ function deleteChar(el){
 		$(txt).val(newtxt);
 		return;
 	}
+
+	var el = getElfromCaret(); // what element is the caret in?
+	if ($(el).attr("class") != "linediv"){
+		return;
+	}
+	
+
 	
 	// check for empty lines
 	var txt = $(el).val();
 	if (txt !== ""){
-		// remove the character at the cursor because shortcuts.js "propagate" crashes
+		// remove the character at the cursor because $.Shortcuts.js "propagate" crashes
 		var p = doGetCaretPosition(el);
 		if (p > 0) {
 			var s = txt.substring(0,p-1) + txt.substring(p);
@@ -768,7 +1092,7 @@ function visitEveryLine(operation){
 						//divs[i].childNodes[0].setAttribute("arrow", "down");
 					}
 					// next line is hidden and is indented
-					if (($(nextdiv).is(':visible') == false) && ($(nextdiv).attr("level") > $(divs[i]).attr("level"))){
+					if (($(nextdiv).is(':visible') === false) && ($(nextdiv).attr("level") > $(divs[i]).attr("level"))){
 					
 						// do right arrow because more content but hidden
 						$(img).attr("src", "images/right.png");
@@ -1002,6 +1326,12 @@ function createNewOutline(){
    highestgid=1; // reset global
    createNewLine($("#startingdiv"));
    $("#titletxtarea").val("TITLE").focus().select();
+   gFileName = "";
+   gFullPath = "Dropbox/";
+   $("#savedir1").text("Dropbox");
+   $("#savedir2").text("Dropbox");
+   $("#savefilename1").text("");
+   $("#savefilename2").text("");
    return $("#startingdiv");
 }
 
@@ -1234,7 +1564,7 @@ function saveBackup(){
 	//var body = "this is a test of outlinio save with virtual directories";
 	$.ajax({
         type: "POST",
-        url: "./php/writebackup.php",
+        url: "./writebackup.php",
 		data:  "title=" + tit + "&body=" + body,
 		//async: false,
 		success: function(dirresult){
@@ -1246,81 +1576,252 @@ function saveBackup(){
     })
 }
 
-function showSaveDialog(mode){
+function showDirSelector(mode){
+	var filename = $("#savefilename1").text();
+	if (filename == ""){
+		filename = $("#titletxtarea").val();
+	}
+	// insert filename as prompt
+	$("#savefilenametextarea").val(filename);
 	if (mode == "BACKUP"){
 		$('.backupchk').prop('checked', true);
 	}
 	else{
 		$('.myCheckbox').prop('checked', false);
 	}
-	$("#savedirname").html(gWorkingDir);
-	if (gFileTitle == ""){
+	$("#savedir2").html(gDisplayFilePath);
+	if (filename == ""){
 		var filetitle = $("#titletxtarea").val();
 		gFileTitle = filetitle;
 	}
 	else{
 		var filetitle = gFileTitle;
 	}
-	$("#savefilename").val(filetitle);
-	$('#saveDialog').slideToggle(300);
+	
+	$('#filetreediv').slideToggle(300);
 }
 
-function saveFile(mode){
-	
-	// if it's a backup, either use existing filename or show the dialogue
-	if (mode == "BACKUP"){
-		var filename = gFileTitle;
-		if (filename == ""){
-			showSaveDialog("BACKUP");
-			return
-		}
-		var saveDir = "outline_backups";
-	}
-		
+function showFileTree(){
+	// add a close button
+	var btn = document.createElement("div");
+	btn.setAttribute("id","filetreeclosebtn");
+	btn.setAttribute("onclick", "$('#filetreediv').slideUp(300)");
+	$(btn).text("X");
+	$('#filetreediv').append(btn);
+	$('#filetreediv').fadeToggle(300)
+}
 
-	// filename from filenamebox
-	// (if user already created one, it will have been filled in automatically;
-	// it's save in gFileTitle;
-	var filename = $("#savefilename").val();
-	if (filename==""){
-		notify("File name required.","ERROR");
+function openSaveDialog(){
+	// opens the pulldown
+	
+	// is there a filename already?
+	if (gFileName === ""){
+		$("#savefilenametextarea").val($("#titletxtarea").val());
+	}
+
+ 	$('#saveDialog').slideToggle(300);
+}
+
+function promptForFileName(){
+
+	filename = prompt("Please enter a file name",$("#titletxtarea").val());
+	if (filename === ""){
 		return
 	}
-	gFileTitle = filename;
 	
-	
+
 	// add opml if necessary
 	var p = filename.lastIndexOf(".");
-	if (p > -1){
+	if (p > -1){ // if a dot
 		var ext = filename.substr(p);
 		if (ext.toUpperCase() != ".OPML"){
 			filename = filename + ".opml";
 		}
 	}
+	else{ // no dot
+		filename = filename + ".opml";
+	}
+	//update the page
+	$("#savefilename1").text(filename);
+	$("#filename2").text(filename);
+	gFileName = filename;
+	//return filename;
+}
+
+function getFileGlobals(f){
+	// updates gFileName, gPathonly, gFullPath
+	var path="", name="",fullpath ="";
 	
-	body = buildOPML();
-	var saveDir = gWorkingDir;
+	// is there Dropbox? If not, add it
+	var p = f.indexOf("Dropbox");
+	if ( (p == -1) ||(p> -1) && (p > 7) ){ // no Dropbox
+		gFullPath = "Dropbox/" + gFullPath;	
+	}
+	
+	// is there a name? If so, get it. If not, keep gFileName as it was
+	var lastslash = f.lastIndexOf("/");
+	if (lastslash < (f.length -1) ){
+		gFileName = f.substr(lastslash + 1);
+	}
+	
+	// get the pathonly, which already has Dropbox added to it
+	gPathOnly = f.substr(0,lastslash - 1);
+}
+	
+
+function saveFile(mode){
+	
+	// DEBUG: THIS WORKS:
+	//gDropboxFullRoot = "./Dropbox/temp/_testh.opml";
+	
+	if ((gFileName === "") || (gFileName == undefined)){
+		promptForFileName(); // sets gFileName
+	}
+
+	// check for .opml
+	var p = gFileName.lastIndexOf(".");
+	if (p > -1){ // if a dot
+		var ext = gFileName.substr(p);
+		if (ext.toUpperCase() != ".OPML"){
+			filename = gFileName + ".opml";
+		}
+	}
+	else{ // no dot
+		gFileName = gFileName + ".opml";
+	}
+	// update the text area
+	$("#savefilenametextarea").val(gFileName);
 	
 	
-	// save it
-	$.ajax({
-		 type: "POST",
-		 url: "php/savefile.php", 
-		 data: {body: body, saveDir : saveDir, filename : filename},
-		 //async: false,
-		 success: function(data) {
-		 	if (mode != "QUIET"){
-		    	notify(filename + " saved to " + gWorkingDir, "OK");
-		    }
-		   },
-		  error: function (e){
-			if (e.statusText != "OK"){
-				notify( "Error: " + e, "ERROR");;
+	gFullPath =  $("#savedir2").text() + "/" + gFileName;
+
+	getFileGlobals(gFullPath);
+	updateRecentList(gFullPath);
+	setCookie("path",gFullPath);
+	setCookie("filename",gFileName);
+	
+	var body = buildOPML();
+	//var saveDir = gDisplayFilePath;
+	
+	// ------- AUTOMATIC BACKUP ---
+	// if it's an automatic backup, use existing filename (prompt if none)
+	// and save to local Dropbox
+	if ((mode == "BACKUP") || (mode == "QUIET")){
+		if (gFileName === ""){
+			//showDirSelector("BACKUP");
+			promptForFileName(); // sets gFileName
+		}
+		
+		var fullpath = "./outline_backups/" + gFileName;
+		// save it
+		$.ajax({
+			 type: "POST",
+			 url: "php/saveLocalFile.php", 
+			 data: {body: body, fullpath :  fullpath},
+			 //async: false,
+			 success: function(data) {
+				if (mode != "QUIET"){
+					notify(gFileName + " backed up to php/outline_backups", "OK");
 				}
+				setCookie("path",gFullPath);
+				setCookie("file",filename);
+			   },
+			  error: function (e){
+				if (e.statusText != "OK"){
+					notify( "Error: " + e, "ERROR");
+					}
+				}
+				 });		 
+		$("#saveDialog").slideUp(300);
+	}
+	
+	// ----------- EXPLICIT USER SAVE
+	// if it's an explicit, user-triggered save, save to Dropbox
+	// If no filename or path, open up the DB Saver
+	// If filename and path, save to local DB 
+	if ((mode == "NODIALOG") || (mode == "QUIET")){
+		// no filename or no path, so open DB Saver
+		if ((gFileName === "") || (gFullPath  === "")){
+			notify("No filename or directory. Save failed", "ERROR");
+			return
+		}
+	// else we're saving it locally to the existing path
+		// name and path are set
+		// save it
+		
+		//var fullpath = "./Dropbox/temp/_testg.opml"; // DEBUG
+		$.ajax({
+			 type: "POST",
+			 url: "php/saveToLocalDropbox.php", 
+			 data: {content: body, fullpath : gFullPath},
+			 //async: false,
+			 success: function(data) {
+				if (mode != "QUIET"){
+					notify(gFileName + " saved to " + gFullPath, "OK");
+				}
+				setCookie("path",gFullPath);
+				setCookie("filename",gFileName);
+			   },
+			  error: function (e){
+				if (e.statusText != "OK"){
+					notify( "Error: " + e.statusText, "ERROR");
+					}
+				}
+				 });
+			return	
+	}
+	
+	
+	// ----------- SAVE AS
+	if (mode == "SAVEAS"){
+		// no  path, so open my browser
+		if  (gFullPath  === ""){
+			if ( ($("#savedir1").text() !== "pathname") || ($("#savedir1").text() !== "")) {
+				gFullPath = $("#savedir1").text() + "/" + filename;
+				gPathOnly = $("#savedir1").text();
+				$("savedir").text(gPathOnly);
 			}
-             });
-             
-    $("#saveDialog").slideUp(300);
+			else { // we need a directory
+				saveDirs();
+			}
+		}
+	// else we're saving it locally to the existing path
+		// name and path are set
+		// save it
+		//var fullpath = "./Dropbox" + gDropboxFullPath + filename;
+		$.ajax({
+			 type: "POST",
+			 url: "php/saveToLocalDropbox.php", 
+			 data: {content: body, fullpath : gFullPath},
+			 //async: false,
+			 success: function(data) {
+				if (mode != "QUIET"){
+					notify(gFileName + " saved to " + gPathOnly, "OK");
+				}
+			   },
+			  error: function (e){
+				if (e.statusText != "OK"){
+					notify( "Error: " + e.statusText, "ERROR");
+					}
+				}
+				 });
+			setCookie("fullpath",gFullPath);
+			//setCookie("file",gFileName);
+			return	
+	}
+
+	// filename from filenamebox
+	// (if user already created one, it will have been filled in automatically;
+	// it's save in gFileTitle;
+	// gFileName = $("#savefilenametextarea").val();
+// 	if (gFileName==""){
+// 		notify("File name required.","ERROR");
+// 		return
+// 	}
+
+	
+	
+
 }
 
 function saveFile_old(auto){
@@ -1364,26 +1865,25 @@ function saveFile_old(auto){
 		 //async: false,
 		 success: function(data) {
 		    //alert(title + " save to " + saveDir + "\n" + body);
-		    notify(filetitle + " saved to " + gWorkingDir, "OK");
+		    notify(filetitle + " saved to " + gDisplayFilePath, "OK");
 		   },
 		  error: function (e){
 			if (e.statusText != "OK"){
-				notify( "Error: " + e, "ERROR");;
+				notify( "Error: " + e, "ERROR");
 				}
 			}
              });
 }
 
-function titleNoExtension(){
+function stripExtension(originalTitle){
 	// title without extension
-	var titleel= document.getElementById("titletxtarea").value;
-	var p = titleel.lastIndexOf(".");
+	var p = originalTitle.lastIndexOf(".");
 	if (p > -1) {
-		var ext = titleel.substring(p + 1, titleel.length);
-		titleNoExt = titleel.substring(0, p);
+		var ext = originalTitle.substring(p + 1, originalTitle.length);
+		titleNoExt = originalTitle.substring(0, p);
 	}
 	else{
-		var titleNoExt = titleel;
+		var titleNoExt = originalTitle;
 	}
 	
 	return titleNoExt;
@@ -1396,33 +1896,45 @@ function downloadFile(which){
  if ((which == undefined) || (which == null)){
     	 which = $("#exports").val();
 	}
+	
+	// use filename
+	if (gFileName == ""){
+		var title = promptForFileName();
+	}
+	else {
+		var title = gFileName;
+	}
 		
 	// strip extension from file
-	
-	var titleNoExt = titleNoExtension();
-	
+	var titleNoExt = stripExtension(title);
 	
 	
+	var body, filetype;
 	switch (which){
    case "RTF":
     	var legittitle = titleNoExt + ".rtf";
 	   body = buildRTF(legittitle); 
+	   filetype="RTF";
 	   break;
    case "HTML":
 	   var legittitle = titleNoExt + ".html";
 	   body = buildHTML(legittitle);
+	    filetype="HTML";
 	   break;
     case "TEXT":
 	   var legittitle = titleNoExt + ".txt";
 	   body = buildText(legittitle);
+	    filetype="TEXT";
 	   break;
-    case "OPML":
-	   
+    case "OPML": 
+       var legittitle = titleNoExt + ".opml"; 
 	   body = buildOPML();
+	   filetype="OPML";
 	   break;
     case "BACKUP":
 	   var legittitle = backupDirectory + "\\" + titleNoExt + ".opml";
-	   body = 	(legittitle);
+	   filetype = "BACKUP";
+	   body = buildOPML();
 	   break;
 	default: 
 		notify("Error in finding type of file to save. Not saved.", "ERROR")
@@ -1430,21 +1942,44 @@ function downloadFile(which){
    }
    
    // package it and insert download link
-   doTheDownload(body, legittitle);
+   doTheDownload(body, legittitle, filetype);
   
 }
 
-function doTheDownload(s, tit){
+function doTheDownload(s, tit, filetype){
+
+
+// thanks http://danml.com/download.html#Summary
+	s = s.replace(String.fromCharCode(0),"");
+	//download(s,"dlText.txt", "text/plain");
+	switch (filetype){
+	case "HTML":
+		download(new Blob([s]), tit, "text/html");
+		break;
+	case "RTF":
+		download(new Blob([s]), tit, "text/plain");
+		break;
+	case "TEXT":
+		download(new Blob([s]), tit, "text/plain");
+		break;
+	case "OPML":
+		download(new Blob([s]), tit, "text/plain");
+		break;
+	case "BACKUP":
+		download(new Blob([s]), tit, "text/plain");
+		break;
+	}	
+
 // thanks http://css.dzone.com/articles/html5-blob-objects-made-easier
-	window.URL = webkitURL || window.URL;
-	window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
-	var blob = new Blob([s], { type: 'text/plain' });
-	var bloburl = window.URL.createObjectURL(blob)
-	var a = document.createElement('a');
-	a.href = bloburl; // window.URL.createObjectURL(file.getBlob('text/plain'));
-	a.download = tit;
-	a.textContent = 'Download ' + tit;
-	$("#exportas").append(a);
+// 	window.URL = webkitURL || window.URL;
+// 	window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
+// 	var blob = new Blob([s], { type: 'text/plain' });
+// 	var bloburl = window.URL.createObjectURL(blob)
+// 	var a = document.createElement('a');
+// 	a.href = bloburl; // window.URL.createObjectURL(file.getBlob('text/plain'));
+// 	a.download = tit;
+// 	a.textContent = 'Download ' + tit;
+// 	$("#exportas").append(a);
 
 }
 
@@ -1477,7 +2012,7 @@ function buildRTF(tit){
 
 function buildText(tit){
 	
-	var b = b + "Filename: " + tit + "\n\n"; // title
+	var b = "Filename: " + tit + "\n\n"; // title
 	
 	// walk the tree
 	var openbranches = new Array;
@@ -1545,7 +2080,7 @@ function buildHTML(tit){
 		textel = divs[i].firstChild.nextSibling;
 		
 	
-			b = b + "\n<div level=" + lev.quote() + " class=\"" + "l" + lev + "\">\n<p level=\"" + lev + "\" class=\"t" + lev + "\">" + textel.value + "</p>\n</div>\r";		
+			b = b + "\n<div level=" + lev + " class=\"" + "l" + lev + "\">\n<p level=\"" + lev + "\" class=\"t" + lev + "\">" + textel.value + "</p>\n</div>\r";		
 		
 	}	
 	
@@ -1584,17 +2119,21 @@ function buildOPML(){
 	
 	// walk the tree
 	var openbranches = new Array;
-	var alldivs = document.getElementsByTagName("div");
-	var divs = new Array;
-	var i, lev, el;
-	// build array of only the divs that have a level
-	for (i = 0; i < alldivs.length; i++){
-		el = alldivs[i];
-		lev = el.getAttribute("level"); // is it an outline row?
-		if (lev != null) {
-			divs.push(alldivs[i]);
-		}
-	}
+// 	var alldivs = document.getElementsByTagName("div");
+// 	var divs = new Array;
+// 	var i, lev, el;
+// 	// build array of only the divs that have a level
+// 	for (i = 0; i < alldivs.length; i++){
+// 		el = alldivs[i];
+// 		lev = el.getAttribute("level"); // is it an outline row?
+// 		if (lev != null) {
+// 			divs.push(alldivs[i]);
+// 		}
+// 	}
+
+	var divs = $(".linediv");
+	
+	
 
 	// now walk that array to get expansion state
 	var s = "";
@@ -1613,7 +2152,7 @@ function buildOPML(){
 	// go through the lines, nesting 
 	var txt = "";
 	var nextlev = 1000;
-	var textel, donee, j, nextopenlev, lev2;
+	var textel, donee, j, nextopenlev, lev, lev2;
 	
 	for (i = 0; i < divs.length; i++) {
 		lev = divs[i].getAttribute("level"); // get level
@@ -1675,17 +2214,17 @@ function buildOPML(){
 
 function openDefault(){
    //var el = document.getElementById("filetoopen");
-   //el.value = gdefaultfile;
+   //el.value = gCurrentFullPath;
    whichBrowser(); // get the browser type
-   if ((gdefaultfile !== undefined) && (gdefaultfile !=="")){
-   openOpmlFile(gdefaultfile);
+   if ((gCurrentFullPath !== undefined) && (gCurrentFullPath !=="")){
+   openOpmlFile(gCurrentFullPath);
    }
 }
 
 function getLatestUpload(){
 	$.ajax({
 		type: "POST",
-		//url: "./php/latestUpload.php",
+		//url: "./latestUpload.php",
 		url: "php/find_latest_upload.php",
 		success: function(data){
 			$("#latestupload").text(data);
@@ -1704,7 +2243,7 @@ function readOPML(){
 	notify("Reading " + latest);
 	$.ajax({
 		type: "POST",
-		//url: "./php/latestUpload.php",
+		//url: "./latestUpload.php",
 		url: "php/find_and_parse_latest_upload.php",
 		success: function(data){
 			//$("#latestupload").text(data);
@@ -1719,13 +2258,14 @@ function readOPML(){
 
 function openOpmlFile(txt){
 	// takes text from drag and drop
+	// WHY NOT DO THIS IN JS???????
 	
 
 	var jsonarray = new Array();
 	var json;
 	$.ajax({
                  type: "POST",
-                 url: "./php/opml_text_parser.php", 
+                 url: "php/opml_text_parser.php", 
                  data: "txt=" + txt,
                  dataType: "JSON",
                  //async: false,
@@ -1734,14 +2274,155 @@ function openOpmlFile(txt){
                   // alert(xmlDoc);
                    },
                   error: function (e){
-                  	if (e.statusText != "OK"){
-                  		json = "Error: " + e;
-                  		}
+                  	//if (e.statusText != "OK"){
+                  		json = "Error: " + e.responseText;
+                  		notify(json, "ERROR");
+                  		//}
                   	}
              }); //close $.ajax(
    
     // turn json into array
     
+
+}
+
+function openNewFileBookkeeping(fn){
+	// update the metadata etc when a file is saved.
+	
+	// separate into filename and path
+	
+	var p = fn.lastIndexOf("/");
+	if (p > -1){
+		var path = fn.substr(0, p);
+		var fname = fn.substr(p + 1);
+	}
+	else{
+		var path = "";
+		var fname = fn;
+	}
+	
+	setCookie("path",path);
+	setCookie("filename",fname);
+	
+	// update path displays
+	$("#savedir1").text(path);
+	$("#savefilename1").text(fname);
+	$("#savedir2").text(path);
+	$("#savefile2").text(fname);
+	
+	updateRecentList(fn);
+}
+
+function buildRecentFilesDiv(){
+	$("#recentfileslist").empty();
+	var i;
+	for (i=0 ; i < gRecentFiles.length; i++){
+		var div = document.createElement("div");
+		$(div).attr("class","recentfile");
+		$(div).text(gRecentFiles[i]);
+		$("#recentfileslist").append(div);
+	}
+	
+	var btn = document.createElement("input");
+	btn.setAttribute("type","button");
+	btn.setAttribute("onclick",'$("#recentdiv").slideUp(400)');
+	btn.setAttribute("value","Close");
+	$("#recentfileslist").append(btn);	
+	
+	// change color when mousedown
+	 $(".recentfile").mousedown(function(){
+    	$(this).addClass("recentfilemousedown");
+    });
+    // change it back
+    $(".recentfile").mouseup(function(){
+    	$(this).removeClass("recentfilemousedown");
+    });
+	// recent file list opens that file
+    $(".recentfile").click(function(){
+    	//alert("D");
+    	var fname = "./Dropbox/" + $(this).text();
+    	openOpmlFile_File(fname);
+    });
+    
+}
+
+function updateRecentList(fn){
+
+	// get rid of line breaks
+	fn = fn.replace(/(\r\n|\n|\r)/gm,"");
+
+	// drop .Dropbox if necessary
+	if (fn.indexOf("Dropbox/") > -1){
+		var p = fn.indexOf("Dropbox/") + 8;
+		fn = fn.substring(p);
+	}
+	
+	// get the current list
+	//var files = $("#recentfileslist").children();
+	
+	// add new to the top
+	gRecentFiles.unshift(fn);
+	
+	var i = 0;
+	var done = false;
+	
+	temparray = new Array();
+    $("#recentfileslist").empty(); // clear it
+    var listlen = gRecentFiles.length;
+	while (done == false){
+	
+		// Add the files, unless it's the selected one, which is already in first place
+		if ((gRecentFiles[i] == fn) && (i > 0) ) {
+			// do nothing
+		}
+		else{
+	
+			temparray.push(gRecentFiles[i]);
+		}
+		i++;
+		if ((i >= gMaxRecentFiles) || (i >= listlen)){
+			done = true;
+		}
+	}
+	
+	gRecentFiles = temparray.slice(0); // copies the array. Weird but right.
+	
+
+    // save it
+    writeRecentFiles();
+	
+	
+}
+
+function writeRecentFiles(){
+	// grab the current ones from the pulldown
+	//   (could also just use gRecentFiles)
+// 	var flist = $("#recentfileslist").children();
+// 	// update the global
+// 	gRecentFiles.length=0;
+// 	for (var i = 0 ; i < flist.length; i++){
+// 		gRecentFiles.push( $(flist[i]).text());
+// 		}
+	var strlist = gRecentFiles.join(",");
+
+	 $.ajax({
+                 type: "POST",
+                 url: "php/writeRecentFiles.php", 
+                 data: "list=" + encodeURIComponent(strlist),
+                 dataType: "JSON",
+                 success: function(data) {
+                  	notify("Recent files written.");
+                   },
+                  error: function (e){
+                  	if (e.statusText != "OK"){
+                  		notify("Failed to write recent files: " + e.statusText, "ERROR");
+                  	}
+                  	else {
+                  		notify("Recent file list updated.");
+                  	}
+                  	}
+             }); //close $.ajax(
+
 
 }
 
@@ -1754,7 +2435,7 @@ function openOpmlFile_File(fn){
 	if ((fn=="") || (fn==undefined)){
 		fn = $("#filetoopen").val();
 		if ((fn=="") || (fn==undefined)) {
-			fn = gdefaultfile;
+			fn = gCurrentFullPath;
 		}
 	}
 
@@ -1763,17 +2444,26 @@ function openOpmlFile_File(fn){
 	 $.ajax({
                  type: "POST",
                  url: "php/opml_parser.php", 
-                 data: "filename=" + fn,
+                 data: "filename=" + encodeURIComponent(fn),
                  dataType: "JSON",
                  //async: false,
                  success: function(data) {
                   	json=data;
                   	parseOpmlJson(data);
+                  	$("#recentdiv").slideUp(400);
+                  	openNewFileBookkeeping(fn);
                   // alert(xmlDoc);
                    },
                   error: function (e){
+                  	var ee = e;
                   	if (e.statusText != "OK"){
-                  		json = "Error: " + e;
+                  		notify("Error opening " + gFullPath + ": " + e.statusText, "ERROR");;
+                  		}
+                  	else{
+                  		json=e.statusText;
+						parseOpmlJson(json);
+						$("#recentdiv").slideUp(400);
+						openNewFileBookkeeping(fn);
                   		}
                   	}
              }); //close $.ajax(
@@ -1786,7 +2476,7 @@ function openOpmlFile_File(fn){
 function parseOpmlJson(json){
 	// completes the job once parsed opml comes back as json
 	    //var jsonarray = JSON.parse(json);
-	var jsonarray = JSON.parse(json);
+	var jsonarray = json; // JSON.parse(json);
 	// get the doc title   
     document.getElementById("titletxtarea").value = jsonarray["title"];
 			
@@ -1802,6 +2492,9 @@ function parseOpmlJson(json){
     if (barray.length > 0) {
     	initVariables();
     }
+    $("#titletxtarea").val(jsonarray["title"]); // first element of jsonarray is metadata
+    
+    // cycle through jsonarray["content"]
     for (var i=0; i < barray.length; i++){
 		txt = barray[i]["text"];
 		lev = barray[i]["level"];
@@ -1815,10 +2508,16 @@ function parseOpmlJson(json){
 		//fitToContent(getTextareaFromDiv(diva));
 	}
 	//gidstr = i;
+	addFileToDropdown();
 	visitEveryLine("UPDATEARROWS");
+	
 }
 
-
+function addFileToDropdown(){
+	// add gFullPath to dropdown
+	// If it's already there, bring it to the top
+	
+}
 
 function walkTree(node, glevel){
 	// walks opml tree
@@ -2004,8 +2703,8 @@ function moveIn(which){
 	}
 	
 	// if save dialog, add in name of directory
-	if (which == "savediv"){
-		$("#savedir").text(gWorkingDir);
+	if (which == "savedir"){
+		$("#savedir").text(gDisplayFilePath);
 	}
 	
 	 $(div).css("top","0");
@@ -2051,7 +2750,7 @@ function ShowHideDiv(which){
         }
 		// go to it
 // 		switch (which){
-// 			case "savediv":
+// 			case "savedir":
 // 			    document.location = "#linksspot"; 
 // 				break;
 // 			case "imagediv":
@@ -2090,13 +2789,16 @@ function moveCursor(el,direction){
   if (direction == "DOWN"){
 		var nexteldiv = $(el).next()[0];
 		var nextel = $(nexteldiv).find("textarea")[0];
-		$(nextel).focus();
+		
   }
     if (direction == "UP"){
     	var nexteldiv = $(el).prev()[0];
   		var nextel = $(nexteldiv).find("textarea")[0];
-  		$(nextel).focus();
+  		
   }
+  setCaretToPos(nextel,$(nextel).val().length);
+  gCurrentTextarea = nextel;
+  //$(nextel).focus();
   return
   
   
@@ -2374,11 +3076,12 @@ function selectDir(which){
 	
 	//pathstring = gRootdir + "/" + pathstring;
 	//gRootdir = pathstring;
-	gWorkingDir = pathstring;
-	setCookie("workingdir",gWorkingDir);
-	$("#workingdirspan").html(gWorkingDir);
+	gDisplayFilePath = pathstring;
+	setCookie("workingdir",gDisplayFilePath);
+	$("#workingdirspan").html(gDisplayFilePath);
 	notify(pathstring);
 	$("#savebtn").attr("title",pathstring);
+	$("#savefilenametextarea").text(pathstring); // add path to save-as pulldown
 	return pathstring
 	
 }
@@ -2464,6 +3167,17 @@ function insertAfter( referenceNode, newNode ){
 function notify(s, status){
 	//var rep = document.getElementById('insertme');
 	
+	$("#notifybanner").html(s);
+	var windowwd = $(window).width();
+	var bannerwd = $("#notifybanner").width();
+	if ( (bannerwd / windowwd) > 0.6666){
+		bannerwd = (windowwd * 0.6666);
+	}
+	bannerwd = windowwd * 0.4;
+	
+	// set width and right window edge as starting point
+	$("#notifybanner").css({"width" : bannerwd + "px", "left" : (windowwd - bannerwd) + "px"});
+	
 	if (status == "ERROR"){
 		var delaytime = 3000;
 		$("#notifybanner").css({"background-color" :   "red"});
@@ -2472,7 +3186,7 @@ function notify(s, status){
 		var delaytime = "1500";
 		$("#notifybanner").css({"background-color" : "rgba(128,0,128,0.9)"});
 	}
-   $("#notifybanner").html(s);
+ 
      $("#notifybanner").show("slide", { direction: "right" }, 1000, function(){
      	$(this).delay(delaytime);
      	$(this).hide("slide",{direction: "right"},500);

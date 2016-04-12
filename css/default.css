@@ -109,8 +109,7 @@ textarea{
 }
 
 #revdate{
-	position: absolute;
-	bottom: 10px;
+	position: relative;
 	font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
 	background: rgba(0,192,192,.9);
 	color: gray;
@@ -119,10 +118,10 @@ textarea{
 #notifybanner{
 	position: fixed;
 	top: 20px;
-	text-align: right;
-	left: 55%;
-	margin-right: auto;
-	max-width: 40%;
+	text-align: left;
+	margin-left: 10px;
+	margin-right: 10px;;
+	width: 40%;
 	padding: 5px;
 	z-index: 10000;
 	color: white;
@@ -135,7 +134,7 @@ textarea{
 
 }
 
-#openloader{
+#openloader,#busy{
 	display: none; /* it's turned off */
 	position:absolute;
 	left:0;
@@ -146,6 +145,17 @@ textarea{
 	text-align: center;
 	z-index:200;
 
+}
+
+#pathnamediv{
+	font-family:  "Helvetica Neue",Helvetica,Verdana,Arial;
+	font-weight: 300;
+	color: #42C0F6;
+}
+#filenamediv{
+	font-family:  "Helvetica Neue",Helvetica,Verdana,Arial;
+	font-weight: 500;
+	color: #369CC8;
 }
 #inneropenloader{
 	font-family:  "Helvetica Neue",Helvetica,Verdana,Arial;
@@ -169,7 +179,7 @@ textarea{
 	height: 100%;
 	text-align: center;
 	display:none;
-	z-index:200;
+	z-index:20000;
  }
 #saveDialog{
 	display: none;
@@ -191,15 +201,14 @@ textarea{
 	height: 22px;
 }
 
-#opendiv,#savediv {
-	top: 40px;
+#opendiv,#savediv, #recentdiv {
+	top: 0;
 	left: 200px;
 	position:absolute;
 	text-align:center;
 	border-width: 0;
 	background-color: #525252;
 	display: none;
-	
 	padding: 30px;
 	width: 250px;
 	height: 150px;
@@ -235,4 +244,56 @@ textarea{
 	width:200px;
 	border-radius:15px;	
 	z-index: 2001;
-}								`																																																																																																																																																																																																																																																																																																																																											
+}
+
+
+#filetreediv{
+	position: absolute;
+	top: 20px;
+	left: 300px;
+	z-index: 100000;
+	display: none;
+	max-height: 600px;
+	margin-left: auto;
+	margin-right: auto;
+	width: 400px;
+	overflow:  scroll;
+	border: 4px solid #3865D4;
+	opacity: 1.0;
+	background-color: #FDFF95
+	
+}	
+#filetreeclosebtn{
+	position: fixed;
+	top:  0px;
+	left: 670px;
+	width: 40px;
+	height: 40px;
+	text-align: center;
+	font-weight: 700;
+	font-size: 30px;
+	z-index: 2002;
+	background-color: #FFFB23;
+	color: #B31AD4;
+	font-family: "Helvetica Neue";
+	font-size: 24x;
+	border: 4px solid #622BD4;
+	-webkit-box-shadow: 0px 9px 16px 0px rgba(0,0,0,0.75);
+	-moz-box-shadow: 0px 9px 16px 0px rgba(0,0,0,0.75);
+	box-shadow: 0px 9px 16px 0px rgba(0,0,0,0.75); 
+	border-radius: 50%;
+	
+}
+#recentfileslist{
+	display: block;
+}
+.recentfile{
+	background-color: #DBFFFB;
+	color: #354995;
+	border: 1px solid #354995;
+	border-radius: 8px;
+}
+.recentfilemousedown{
+	background-color: #EAF834;
+}						`																																																																																																																																																																																																																																																																																																																																											
+

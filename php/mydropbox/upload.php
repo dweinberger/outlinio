@@ -20,7 +20,8 @@ try {
     $client = new DropboxClient($session);
 
     $src = $config["app"]["datadir"] . "/test.png";
-    $dest = "/";
+    $src = "./_atest2.opml";
+    $dest = "/_atest/";
 
     // Upload a file
     if ($response = $client->putFile($src, $dest)) {

@@ -1,0 +1,36 @@
+<html>
+<head>
+	<title>js test</title>
+		<script src="./includes/jquery-2.1.4.min.js"></script>
+		
+<script language="javascript" type="text/javascript">
+
+$(document).ready(function(){	
+	$.ajax({
+		type: "POST",
+		beforeSend: function (request)
+            {
+                request.setRequestHeader("Content-Type", "application/json");
+                request.setRequestHeader("User-Agent", "api-explorer-user");
+            },
+		url: "https://api.dropboxapi.com/2/sharing/get_shared_link_metadata?authorization=Bearer X84mk9NLswoAAAAAAAFT8mrNdrPxCr-NB1ycVPOeq9DqD7on5u-u6RUkzz1BAzu4",
+		data: JSON.stringify({url : "https://www.dropbox.com/s/lry4ngbzu0bxeiv/_a.opml?dl=1"}),
+		// Authorization: "Bearer X84mk9NLswoAAAAAAAFT8mrNdrPxCr-NB1ycVPOeq9DqD7on5u-u6RUkzz1BAzu4",
+// 	
+		success: function(cont){
+			alert(cont.path_lower);
+			
+		},
+		error: function(e){
+			alert(e.responseText);
+		}
+		});
+
+	
+});
+</script>
+</head>
+<body>
+
+
+</body>

@@ -28,7 +28,6 @@
 		<script type="text/javascript" src="./includes/shortcuts.js"></script>
 		<script type="text/javascript" src="./includes/jquery.textareaAutoResize.js"></script>
 		<script type="text/javascript" src="./includes/jquery.fileTree/jqueryFileTree.js"></script>
-		<script type="text/javascript" src="./includes/download2.js"></script>
 		<script type="text/javascript" src="./js/outlinio_04.js"></script>
 		<!-- Thanks, http://www.openjs.com/scripts/events/keyboard_shortcuts/-->
 		
@@ -68,11 +67,9 @@ $(document).ready(function(){
 		</div>
 		
 		<!-- Recent files pull down -->
-		 <div id="recentdiv">
-		 	Recent Files (Dropbox)<br>
-		 	<div id = "recentfileslist">
-		 	</div>
-			<input type="button" value="Close" style="display:none" onclick="$('#recentdiv').slideUp(400);">
+		 <div id="recentdiv">Recent Files (Dropbox)<br>
+		 	<div id = "recentfileslist"></div>
+			<input type="button" value="Close" onclick="$('#recentdiv').slideUp(400);
 		</div>
 		
 		

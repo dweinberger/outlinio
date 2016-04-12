@@ -1,0 +1,17 @@
+<?php
+// writes list of recent files. Comma delimited
+$list = $_POST['list'];
+
+
+$myFilePath = "./data/recentFiles.txt" ;
+
+error_log("file:$myFilePath list=$list");
+$fh = fopen($myFilePath,"w" ) or die("Cannot open save file: " . $title);
+$newbody = urldecode($body);
+fwrite($fh, $newbody);
+error_log("Wrote something to $fh");
+fclose($fh);
+
+
+
+?>

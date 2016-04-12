@@ -1,0 +1,75 @@
+body{
+	background-color: #FFB9C7;
+}
+
+/* Every area that lets you type into it */
+textarea{
+	border-radius: 10px;
+	background-color: #FF3FAF;
+	color: white;
+}
+/* Overall default properties of lines of text */
+.line{
+	font-size: 14pt;
+	font-family: Optima, Gill Sans, Futura, Sans;
+	color:white;
+	position: relative;
+	height: auto;
+	overflow: hidden;
+	resize: none;
+}
+
+/* The row each text area is in */
+.linediv{
+	margin-top: -5px;
+	margin-bottom: -5px;
+}
+
+/* The different indent levels of each row */
+.t0{
+  background-color: #A52971; 
+  color: #white;
+  font-size: 16pt;
+}
+.t1{
+  background-color: #DB3696; 
+  color: #white;
+  font-size: 14pt;
+}
+.t2{
+  background-color: #FF3FAF; 
+  color: #white;
+  font-size: 12pt;
+}
+.t3{
+  background-color: #FF89D1; 
+  color: #B12497;
+  font-size: 10pt;
+}
+.t4{
+  background-color: #B190B0; 
+  color: #685567;
+  font-size: 10pt;
+}
+.t4{
+  background-color: #FFD0FD; 
+  color: #86075D;
+  font-size: 10pt;
+}
+
+/* 
+
+ */
+#titletxtarea{
+	height:20pt;
+	width: 95%;
+	font-size:18pt;
+	background-color:#A816CA;
+	color: white;
+	border-bottom: 2px solid #4A8DFF;
+	font-family: "Helvetica Neue",Helvetica,Verdana,Arial,Sans;
+}
+
+
+
+

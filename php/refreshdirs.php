@@ -1,12 +1,14 @@
 <?php
 
-$rootdir = $_GET['rootdir']; //"Dropbox/misc";
+$rootdir = $_GET['rootdir']; 
+//$rootdir = "Dropbox/misc";
 error_log("Rdir: $rootdir||");
 $cmd = shell_exec("ls -R $rootdir| grep \":$\" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'");
 //$cmd="|-first\n|---second\n|-----third\n|---fourth";
 
 $a = explode("\n",$cmd);
 $count = count($a);
+echo "count= $count";
 
 // dashes express level even if taken a subfolder as root
 // so get the baseline number of dashes
@@ -24,6 +26,7 @@ for ($i=0; $i < $count; $i++){
 	$folder = $a[$i];
 	$done = false;
 	$fulllen = strlen($folder);
+	//echo $folder;
 	// remove opening "|";
 	$justname = substr($folder,2);
 	//error_log("justdashes: $justname");
@@ -52,6 +55,6 @@ fclose($myfile);
 
 //ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'
 
-return count($ja);
+return count($jarray);
 
 ?>

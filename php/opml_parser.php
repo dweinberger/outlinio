@@ -5,10 +5,11 @@
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
 
+error_log("+++++++++++++++++++++++++");
  $filename = $_POST['filename'];
  error_log("file=" . $filename);
  //echo "<p>file =" . $filename . "</p>";
- //$filename="test1.opml";
+ //$filename="Dropbox/universitypresser-cocktail-napkin.opml";
  $f = file_get_contents($filename);
 
 function extractTextFromTags($s,$l){
@@ -57,6 +58,7 @@ function extractTextFromTags($s,$l){
     if (strpos($line, "<title>") !== false) {
     	$title = extractTextFromTags("<title>",$line);
     	 $a["title"] = $title;
+    	 error_log("TITLE: $title");
     }
     if (strpos($line, "<dateCreated>") !== false) {
     	$dateCreated = extractTextFromTags("<dateCreated>",$line);
@@ -112,6 +114,7 @@ function extractTextFromTags($s,$l){
 			$text = substr($line, $brack1 + 1,  $brack2 - ($brack1 + 1));
 		   // echo "<br>$brack1  $brack2 text= $text";
 		}
+		//print("CTR=$ctr Text=$text");
 		if ($text !==""){
 			$contentarray[$ctr]["text"] = $text;
 			$contentarray[$ctr]["level"]= $lev;
@@ -121,6 +124,8 @@ function extractTextFromTags($s,$l){
   }
   
 
+// print_r($contentarray[0]);
+ //print("COUNT: " . count($contentarray));
   
   $a["content"] = $contentarray;
   $jsn = json_encode($a);

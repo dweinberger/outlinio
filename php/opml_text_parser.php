@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 ini_set("display_errors", 1);
 
  $f = $_POST['txt'];
- //error_log("f=" . $f . "---------------------------");
+ error_log("--------------- f=" . $f . "------");
  //echo "<p>file =" . $filename . "</p>";
  //$filename="test1.opml";
 
@@ -17,7 +17,7 @@ function extractTextFromTags($s,$l){
 	$b1 = strlen($s); // end of open tag
 	$b2 = strrpos($l, "</"); // beginning of close tag
 	if (($b1 === false) || ($b2 === false)) {
-		echo "Error with tag: $s in line $l";
+		echo "++ Error with tag: $s in line $l";
 		return;
 	}
 	if (($b2 - $b1) < 1){
@@ -41,20 +41,23 @@ function extractTextFromTags($s,$l){
  
  // turn into array of lines
   $lines = explode(PHP_EOL,$f);
-  
+  error_log("COUNT=" .  count($lines));
   
   //--------- cycle through the array
   $lev= 0 ;
   $prevlev = 0;
   $ctr = 0;
+  $i = 0;
  for ($i = 0; $i < count($lines); $i++){
      $line = trim($lines[$i]);
-  	error_log("-----LINE $i=$line");
+  	//error_log("-----LINE $i=$line");
   	if ($line !== ""){
- 
+ 	if ($i == 3){
+ 		error_log("===3: $line");
+ 	}
     // --- look for headings
     if (strpos($line, "<title>") !== false) {
-    	error_log("Found title, line $i");
+    	error_log("Found title, line $i:" . $line);
     	$title = extractTextFromTags("<title>",$line);
     	 $a["title"] = $title;
     }

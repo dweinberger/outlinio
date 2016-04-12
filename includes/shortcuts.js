@@ -1,225 +1,294 @@
 /**
- * http://www.openjs.com/scripts/events/keyboard_shortcuts/
- * Version : 2.01.B
- * By Binny V A
- * License : BSD
+ * JavaScript Shortcuts Library (jQuery plugin) v0.7
+ * http://www.stepanreznikov.com/js-shortcuts/
+ * Copyright (c) 2010 Stepan Reznikov (stepan.reznikov@gmail.com)
+ * Date: 2010-08-08
  */
  
-//alert("shortcuts");
-shortcut = {
-	'all_shortcuts':{},//All the shortcuts are stored in this array
-	'add': function(shortcut_combination,callback,opt) {
-		//Provide a set of default options
-		var default_options = {
-			'type':'keydown',
-			'propagate':false,
-			'disable_in_input':false,
-			'target':document,
-			'keycode':false
-		}
-		if(!opt) opt = default_options;
-		else {
-			for(var dfo in default_options) {
-				if(typeof opt[dfo] == 'undefined') opt[dfo] = default_options[dfo];
-			}
-		}
+ // dw added this to avoid $.browser is undefined. From stackoverflow
+ // http://stackoverflow.com/questions/14798403/typeerror-browser-is-undefined
+ var matched, browser;
 
-		var ele = opt.target;
-		if(typeof opt.target == 'string') ele = document.getElementById(opt.target);
-		var ths = this;
-		shortcut_combination = shortcut_combination.toLowerCase();
+jQuery.uaMatch = function( ua ) {
+    ua = ua.toLowerCase();
 
-		//The function to be called at keypress
-		var func = function(e) {
-			e = e || window.event;
-			
-			if(opt['disable_in_input']) { //Don't enable shortcut keys in Input, Textarea fields
-				var element;
-				if(e.target) element=e.target;
-				else if(e.srcElement) element=e.srcElement;
-				if(element.nodeType==3) element=element.parentNode;
+    var match = /(chrome)[ \/]([\w.]+)/.exec( ua ) ||
+        /(webkit)[ \/]([\w.]+)/.exec( ua ) ||
+        /(opera)(?:.*version|)[ \/]([\w.]+)/.exec( ua ) ||
+        /(msie) ([\w.]+)/.exec( ua ) ||
+        ua.indexOf("compatible") < 0 && /(mozilla)(?:.*? rv:([\w.]+)|)/.exec( ua ) ||
+        [];
 
-				if(element.tagName == 'INPUT' || element.tagName == 'TEXTAREA') return;
-			}
-	
-			//Find Which key is pressed
-			if (e.keyCode) code = e.keyCode;
-			else if (e.which) code = e.which;
-			var character = String.fromCharCode(code).toLowerCase();
-			
-			if(code == 188) character=","; //If the user presses , when the type is onkeydown
-			if(code == 190) character="."; //If the user presses , when the type is onkeydown
+    return {
+        browser: match[ 1 ] || "",
+        version: match[ 2 ] || "0"
+    };
+};
 
-			var keys = shortcut_combination.split("+");
-			//Key Pressed - counts the number of valid keypresses - if it is same as the number of keys, the shortcut function is invoked
-			var kp = 0;
-			
-			//Work around for stupid Shift key bug created by using lowercase - as a result the shift+num combination was broken
-			var shift_nums = {
-				"`":"~",
-				"1":"!",
-				"2":"@",
-				"3":"#",
-				"4":"$",
-				"5":"%",
-				"6":"^",
-				"7":"&",
-				"8":"*",
-				"9":"(",
-				"0":")",
-				"-":"_",
-				"=":"+",
-				";":":",
-				"'":"\"",
-				",":"<",
-				".":">",
-				"/":"?",
-				"\\":"|"
-			}
-			//Special Keys - and their codes
-			var special_keys = {
-				'esc':27,
-				'escape':27,
-				'tab':9,
-				'space':32,
-				'return':13,
-				'enter':13,
-				'backspace':8,
-	
-				'scrolllock':145,
-				'scroll_lock':145,
-				'scroll':145,
-				'capslock':20,
-				'caps_lock':20,
-				'caps':20,
-				'numlock':144,
-				'num_lock':144,
-				'num':144,
-				
-				'pause':19,
-				'break':19,
-				
-				'insert':45,
-				'home':36,
-				'delete':46,
-				'end':35,
-				
-				'pageup':33,
-				'page_up':33,
-				'pu':33,
-	
-				'pagedown':34,
-				'page_down':34,
-				'pd':34,
-	
-				'left':37,
-				'up':38,
-				'right':39,
-				'down':40,
-	
-				'f1':112,
-				'f2':113,
-				'f3':114,
-				'f4':115,
-				'f5':116,
-				'f6':117,
-				'f7':118,
-				'f8':119,
-				'f9':120,
-				'f10':121,
-				'f11':122,
-				'f12':123
-			}
-	
-			var modifiers = { 
-				shift: { wanted:false, pressed:false},
-				ctrl : { wanted:false, pressed:false},
-				alt  : { wanted:false, pressed:false},
-				meta : { wanted:false, pressed:false}	//Meta is Mac specific
-			};
-                        
-			if(e.ctrlKey)	modifiers.ctrl.pressed = true;
-			if(e.shiftKey)	modifiers.shift.pressed = true;
-			if(e.altKey)	modifiers.alt.pressed = true;
-			if(e.metaKey)   modifiers.meta.pressed = true;
-                        
-			for(var i=0; k=keys[i],i<keys.length; i++) {
-				//Modifiers
-				if(k == 'ctrl' || k == 'control') {
-					kp++;
-					modifiers.ctrl.wanted = true;
+matched = jQuery.uaMatch( navigator.userAgent );
+browser = {};
 
-				} else if(k == 'shift') {
-					kp++;
-					modifiers.shift.wanted = true;
-
-				} else if(k == 'alt') {
-					kp++;
-					modifiers.alt.wanted = true;
-				} else if(k == 'meta') {
-					kp++;
-					modifiers.meta.wanted = true;
-				} else if(k.length > 1) { //If it is a special key
-					if(special_keys[k] == code) kp++;
-					
-				} else if(opt['keycode']) {
-					if(opt['keycode'] == code) kp++;
-
-				} else { //The special keys did not match
-					if(character == k) kp++;
-					else {
-						if(shift_nums[character] && e.shiftKey) { //Stupid Shift key bug created by using lowercase
-							character = shift_nums[character]; 
-							if(character == k) kp++;
-						}
-					}
-				}
-			}
-			
-			if(kp == keys.length && 
-						modifiers.ctrl.pressed == modifiers.ctrl.wanted &&
-						modifiers.shift.pressed == modifiers.shift.wanted &&
-						modifiers.alt.pressed == modifiers.alt.wanted &&
-						modifiers.meta.pressed == modifiers.meta.wanted) {
-				callback(e);
-	
-				if(!opt['propagate']) { //Stop the event
-					//e.cancelBubble is supported by IE - this will kill the bubbling process.
-					e.cancelBubble = true;
-					e.returnValue = false;
-	
-					//e.stopPropagation works in Firefox.
-					if (e.stopPropagation) {
-						e.stopPropagation();
-						e.preventDefault();
-					}
-					return false;
-				}
-			}
-		}
-		this.all_shortcuts[shortcut_combination] = {
-			'callback':func, 
-			'target':ele, 
-			'event': opt['type']
-		};
-		//Attach the function with the event
-		if(ele.addEventListener) ele.addEventListener(opt['type'], func, false);
-		else if(ele.attachEvent) ele.attachEvent('on'+opt['type'], func);
-		else ele['on'+opt['type']] = func;
-	},
-
-	//Remove the shortcut - just specify the shortcut and I will remove the binding
-	'remove':function(shortcut_combination) {
-		shortcut_combination = shortcut_combination.toLowerCase();
-		var binding = this.all_shortcuts[shortcut_combination];
-		delete(this.all_shortcuts[shortcut_combination])
-		if(!binding) return;
-		var type = binding['event'];
-		var ele = binding['target'];
-		var callback = binding['callback'];
-
-		if(ele.detachEvent) ele.detachEvent('on'+type, callback);
-		else if(ele.removeEventListener) ele.removeEventListener(type, callback, false);
-		else ele['on'+type] = false;
-	}
+if ( matched.browser ) {
+    browser[ matched.browser ] = true;
+    browser.version = matched.version;
 }
+
+// Chrome is Webkit, but Webkit is also Safari.
+if ( browser.chrome ) {
+    browser.webkit = true;
+} else if ( browser.webkit ) {
+    browser.safari = true;
+}
+
+jQuery.browser = browser;
+ 
+ 
+ 
+ 
+
+/*global jQuery */
+
+(function($) {
+
+    /** Special keys */
+    var special = {
+        'backspace': 8,
+        'tab': 9,
+        'enter': 13,
+        'pause': 19,
+        'capslock': 20,
+        'esc': 27,
+        'space': 32,
+        'pageup': 33,
+        'pagedown': 34,
+        'end': 35,
+        'home': 36,
+        'left': 37,
+        'up': 38,
+        'right': 39,
+        'down': 40,
+        'insert': 45,
+        'delete': 46,
+        'f1': 112,
+        'f2': 113,
+        'f3': 114,
+        'f4': 115,
+        'f5': 116,
+        'f6': 117,
+        'f7': 118,
+        'f8': 119,
+        'f9': 120,
+        'f10': 121,
+        'f11': 122,
+        'f12': 123,
+        '?': 191, // Question mark
+        'minus': $.browser.opera ? [109, 45] : $.browser.mozilla ? 109 : [189, 109],
+        'plus': $.browser.opera ? [61, 43] : $.browser.mozilla ? [61, 107] : [187, 107]
+    };
+
+    /** Hash for shortcut lists */
+    var lists = {};
+
+    /** Active shortcut list */
+    var active;
+
+    /** Hash for storing which keys are pressed at the moment. Key - ASCII key code (e.which), value - true/false. */
+    var pressed = {};
+
+    var isStarted = false;
+
+    var getKey = function(type, maskObj) {
+        var key = type;
+
+        if (maskObj.ctrl) { key += '_ctrl'; }
+        if (maskObj.alt) { key += '_alt'; }
+        if (maskObj.shift) { key += '_shift'; }
+
+        var keyMaker = function(key, which) {
+            if (which && which !== 16 && which !== 17 && which !== 18) { key += '_' + which; }
+            return key;
+        };
+
+        if ($.isArray(maskObj.which)) {
+            var keys = [];
+            $.each(maskObj.which, function(i, which) {
+                keys.push(keyMaker(key, which));
+            });
+            return keys;
+        } else {
+            return keyMaker(key, maskObj.which);
+        }
+    };
+
+    var getMaskObject = function(mask) {
+        var obj = {};
+        var items = mask.split('+');
+
+        $.each(items, function(i, item) {
+            if (item === 'ctrl' || item === 'alt' || item === 'shift') {
+                obj[item] = true;
+            } else {
+                obj.which = special[item] || item.toUpperCase().charCodeAt();
+            }
+        });
+
+        return obj;
+    };
+
+    var checkIsInput = function(target) {
+        var name = target.tagName.toLowerCase();
+        var type = target.type;
+        return (name === 'input' && $.inArray(type, ['text', 'password', 'file', 'search']) > -1) || name === 'textarea';
+    };
+
+    var run = function(type, e) {
+        if (!active) { return; }
+
+        var maskObj = {
+            ctrl: e.ctrlKey,
+            alt: e.altKey,
+            shift: e.shiftKey,
+            which: e.which
+        };
+
+        var key = getKey(type, maskObj);
+        var shortcuts = active[key]; // Get shortcuts from the active list.
+
+        if (!shortcuts) { return; }
+
+        var isInput = checkIsInput(e.target);
+        var isPrevented = false;
+
+        $.each(shortcuts, function(i, shortcut) {
+            // If not in input or this shortcut is enabled in inputs.
+            if (!isInput || shortcut.enableInInput) {
+                if (!isPrevented) {
+                    e.preventDefault();
+                    isPrevented = true;
+                }
+                shortcut.handler(e); // Run the shortcut's handler.
+            }
+        });
+    };
+
+    $.Shortcuts = {};
+
+    /**
+     * Start reacting to shortcuts in the specified list.
+     * @param {String} [list] List name
+     */
+    $.Shortcuts.start = function(list) {
+        list = list || 'default';
+        active = lists[list]; // Set the list as active.
+
+        if (isStarted) { return; } // We are going to attach event handlers only once, the first time this method is called.
+
+        $(document).bind(($.browser.opera ? 'keypress' : 'keydown') + '.shortcuts', function(e) {
+            // For a-z keydown and keyup the range is 65-90 and for keypress it's 97-122.
+            if (e.type === 'keypress' && e.which >= 97 && e.which <= 122) {
+                e.which = e.which - 32;
+            }
+            if (!pressed[e.which]) {
+                run('down', e);
+            }
+            pressed[e.which] = true;
+            run('hold', e);
+        });
+
+        $(document).bind('keyup.shortcuts', function(e) {
+            pressed[e.which] = false;
+            run('up', e);
+        });
+
+        isStarted = true;
+
+        return this;
+    };
+
+    /**
+     * Stop reacting to shortcuts (unbind event handlers).
+     */
+    $.Shortcuts.stop = function() {
+        $(document).unbind('keypress.shortcuts keydown.shortcuts keyup.shortcuts');
+        isStarted = false;
+        return this;
+    };
+
+    /**
+     * Add a shortcut.
+     * @param {Object}   params         Shortcut parameters.
+     * @param {String}  [params.type]   The type of event to be used for running the shortcut's handler.
+     *     Possible values:
+     *     down – On key down (default value).
+     *     up   – On key up.
+     *     hold – On pressing and holding down the key. The handler will be called immediately
+     *            after pressing the key and then repeatedly while the key is held down.
+     * 
+     * @param {String}   params.mask    A string specifying the key combination.
+     *     Consists of key names separated by a plus sign. Case insensitive.
+     *     Examples: 'Down', 'Esc', 'Shift+Up', 'ctrl+a'.
+     * 
+     * @param {Function} params.handler A function to be called when the key combination is pressed. The event object will be passed to it.
+     * @param {String}  [params.list]   You can organize your shortcuts into lists and then switch between them.
+     *     By default shortcuts are added to the 'default' list.
+     * @param {Boolean} [params.enableInInput] Whether to enable execution of the shortcut in input fields and textareas. Disabled by default.
+     */
+    $.Shortcuts.add = function(params) {
+        if (!params.mask) { throw new Error("$.Shortcuts.add: required parameter 'params.mask' is undefined."); }
+        if (!params.handler) { throw new Error("$.Shortcuts.add: required parameter 'params.handler' is undefined."); }
+
+        var type = params.type || 'down';
+        var listNames = params.list ? params.list.replace(/\s+/g, '').split(',') : ['default'];
+
+        $.each(listNames, function(i, name) {
+            if (!lists[name]) { lists[name] = {}; }
+            var list = lists[name];
+            var masks = params.mask.toLowerCase().replace(/\s+/g, '').split(',');
+
+            $.each(masks, function(i, mask) {
+                var maskObj = getMaskObject(mask);
+                var keys = getKey(type, maskObj);
+                if (!$.isArray(keys)) { keys = [keys]; }
+    
+                $.each(keys, function(i, key) {
+                    if (!list[key]) { list[key] = []; }
+                    list[key].push(params);
+                });
+            });
+        });
+
+        return this;
+    };
+
+    /**
+     * Remove a shortcut.
+     * @param {Object}  params       Shortcut parameters.
+     * @param {String} [params.type] Event type (down|up|hold). Default: 'down'.
+     * @param {String}  params.mask  Key combination.
+     * @param {String} [params.list] A list from which to remove the shortcut. Default: 'default'.
+     */
+    $.Shortcuts.remove = function(params) {
+        if (!params.mask) { throw new Error("$.Shortcuts.remove: required parameter 'params.mask' is undefined."); }
+
+        var type = params.type || 'down';
+        var listNames = params.list ? params.list.replace(/\s+/g, '').split(',') : ['default'];
+
+        $.each(listNames, function(i, name) {
+            if (!lists[name]) { return true; } // continue
+            var masks = params.mask.toLowerCase().replace(/\s+/g, '').split(',');
+
+            $.each(masks, function(i, mask) {
+                var maskObj = getMaskObject(mask);
+                var keys = getKey(type, maskObj);
+                if (!$.isArray(keys)) { keys = [keys]; }
+
+                $.each(keys, function(i, key) {
+                    delete lists[name][key];
+                });
+            });
+        });
+
+        return this;
+    };
+
+}(jQuery));
