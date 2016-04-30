@@ -7,7 +7,7 @@
 		
 		<!-- default.css for the baseline. The id=pagestyle for additional ones from dropdown list -->
 		<link type="text/css" rel="stylesheet" href="./css/default.css">
-		<link id="pagestyle" type="text/css" rel="stylesheet" href="./css/default.css">
+		<!--link id="pagestyle" type="text/css" rel="stylesheet" href="./css/default.css"-->
 		<link id="pagestyle" type="text/css" rel="stylesheet" href="includes/jquery.FileTree/jqueryFileTree.css">
 		<!-- link  type="text/css" rel="stylesheet" href="./css/outlinio-user-prefs.css" -->
 		
@@ -21,12 +21,14 @@
 
 -->
 
-<!-- <script  src="./includes/jquery-ui-1.11.4.custom/jquery-ui.min.js"></script> -->
 
 
-		<script type="text/javascript" src="./includes/autoresize.jquery.js"></script>
+		 <!--script type="text/javascript" src="./includes/autoresize.jquery.js"></script -->
 		<script type="text/javascript" src="./includes/shortcuts.js"></script>
-		<script type="text/javascript" src="./includes/jquery.textareaAutoResize.js"></script>
+		<!--script type="text/javascript" src="./includes/jquery-elastic-1.6.10/jquery.elastic.source.js"></script-->
+		<!-- The following (now commented out) adds height and overlow styles to every textbox.
+		      and is responsible for the autoresize function in createNewLineDiv -->
+		<!-- <script type="text/javascript" src="./includes/jquery.textareaAutoResize.js"></script> -->
 		<script type="text/javascript" src="./includes/jquery.fileTree/jqueryFileTree.js"></script>
 		<script type="text/javascript" src="./includes/download2.js"></script>
 		<script type="text/javascript" src="./js/outlinio_04.js"></script>
@@ -185,14 +187,17 @@ $(document).ready(function(){
 
 
 <!-- OUTLINE BEGINS HERE -->
+
 <span id="savedir1">Dropbox</span>/<span id="savefilename1">filename</span>
 <div id="titleel"><textarea id="titletxtarea" class="titletextarea" onclick="noteSpot(this)" >
 	TITLE</textarea>
-</div>	
-	<div  id="startingdiv"></div>
+</div>
+
+<div  id="startingdiv"></div>
 	
-	<div id="enddiv"></div>
-	<div id="status"></div>
+<div id="enddiv"></div>
+
+<div id="status" style="display:block; border: 1px solid black">STATUS</div>
 	
 	
 	

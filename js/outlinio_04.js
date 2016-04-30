@@ -223,8 +223,7 @@ function init(){
     	gCurrentFullPath = gPathOnly + gFileName;
     	setCookie("fullpath",gCurrentFullPath);
     });
-    
-			
+    	
 
 }
 
@@ -485,7 +484,8 @@ function initVariables(){
 
 function assignKeys(){
   // uses $.Shortcuts.js : http://www.openjs.com/scripts/events/keyboard_shortcuts/#keys
-  	// backspace
+  	// tab
+  	
 
     $.Shortcuts.add({
     	type: 'down',
@@ -620,7 +620,7 @@ function assignKeys(){
 // 	// up arrow
  $.Shortcuts.add({
     	type: 'down',
-   	 	mask: 'Up',
+   	 	mask: 'Shift+Up',
    	 	enableInInput: true,
     	handler: function() {
 			moveCursor(gCurrentTextarea,"UP");
@@ -633,8 +633,8 @@ function assignKeys(){
 // 	});
 // 	// down arrow
  $.Shortcuts.add({
-    	type: 'up',
-   	 	mask: 'Down',
+    	type: 'down',
+   	 	mask: 'Shift+Down',
    	 	enableInInput: true,
     	handler: function() {
 			moveCursor(gCurrentTextarea,"DOWN");
@@ -687,7 +687,7 @@ function getElfromCaret(){
 
 
 
-function keyWasPressed(){
+function keyWasPressed(ta){
 	// is it a text area that needs to be resized?
 	//fitToContent(gCurrentTextarea);
 	// count keys and trigger doc save
@@ -699,6 +699,19 @@ function keyWasPressed(){
 			saveFile("QUIET");
 		}
 	}
+	
+	// if textarea, then resize it
+	if (ta != undefined){
+		fitToContent(ta);
+	}
+	
+
+	// var txtht = $(gCurrentTextarea).height();
+// 	var div = $(gCurrentTextarea).parent()[0];
+// 	var dht = $(div).height();
+// 	$(gCurrentTextarea).css("height", txtht + 30 + "px");
+	
+
 }
 
 function initDropZone(){
@@ -820,18 +833,36 @@ if (!String.prototype.decodeXML) {
 }
 
 function fitToContent(text_area){
-	//!$.fx.off;
+		if (text_area != undefined){
+		$(text_area).height(0).height(text_area.scrollHeight);
+	}
+	
+	return
+		//adjust div height
+	//http://stackoverflow.com/questions/22571563/dynamically-resize-container-to-fit-text
+	var div =   $(gCurrentTextarea).parent();
+	var txtarea = gCurrentTextarea;
+	var outerht = $(txtarea).outerHeight(true);
+	$(div).height(outerht);
 
-	;
-   return
+	// debug
 
-// 	if (browsertype == "MSIE") {
-// 		text_area.style.height = text_area.scrollHeight + "px";
-// 	} 	
-// 	else {
-// 		text_area.style.height = 'auto';
-// 	    text_area.style.height = (text_area.scrollHeight -2) + "px";
-// 	}
+	$("#status").html($("#status").html() + "<br>" + outerht + ": " + $(gCurrentTextarea).val().substr(0, 15));
+
+	 return
+	 
+	 // DEBUG =======
+	var scrollht = $(text_area).css("scrollHeight");
+	if (browsertype == "MSIE") {
+		
+		$(text_area).css({"height" : scrollht + "px"}); 
+		//text_area.style.height = text_area.scrollHeight + "px";
+	} 	
+	else {
+		$(text_area).css({"height" : "auto", "scrollheight" : (scrollht - 2) + "px"}); 
+		//text_area.style.height = 'auto';
+	    //text_area.style.height = (text_area.scrollHeight -2) + "px";
+	}
 }
 /*
 ** Returns the caret (cursor) position of the specified text field.
@@ -1072,8 +1103,30 @@ function getSelectedText(){
 function visitEveryLine(operation){
 	// do somethingto every line
 	var divs = $(".linediv");
+	//var divs  = $(document.linediv)	;
 	var i,id,chld, adiv, lev,lev2;
 	for (i=0; i < divs.length; i++){
+		if (operation == "DEBUGAUTORESIZE"){
+			fitToContent(divs[i]);
+		}
+		if (operation == "AUTORESIZE"){
+			var div = divs[i];
+			var text_area = getTextareaFromDiv(div);
+			$(text_area).focus();
+			$(div).focus();
+			fitToContent(text_area);
+			return;
+			// reset height. Not sure what's setting it.
+			$(text_area).css("height","auto");
+			var th = $(text_area).css("height");
+			$(text_area).val(th + ": " + $(text_area).val());
+			thnumb = parseInt(th.substring(0, th.length - 2)) + 30;
+			th = thnumb + "px";
+			$(div).css("height",th);
+ 			//$("#status").text("DIV: " + $(div).css("height") + "TEXT: " + $(text_area).css("height"));
+		 }
+	
+	
 			if (operation == "UPDATEARROWS") {
 				// does it have a visible child
 				if (i != divs.length - 1) {
@@ -1407,8 +1460,17 @@ function selectorExists(selector) {
 }
       
 function createNewLine(div){
-	// div= parent of text area where you want to create new line
+	// div= parent of text area after which you want to create new line
 	//var div = gCurrentTextarea.parentNode;
+	
+	// if no div, then get the last one
+	if (div == undefined){
+		div = $(".linediv").last();
+		// if there are no divs yet
+		if (div.length == 0){
+			div = document.getElementById("startingdiv");
+		}
+	}
 	
 	// if div is a textarea, then get its parent
 	if ($(div).is("textarea")){
@@ -1478,31 +1540,49 @@ function createNewLine(div){
 		$(newtextarea).val(gidstr + "\tLEVEL: " + levelstr );
 	}
 	
-		$( ".line" ).keypress(function(a) {
-  			keyWasPressed();
-	});
+	$(newtextarea).on( 'keyup cut paste', function (){
+    	keyWasPressed(this);
+});
+
+//$( ".line" ).keypress(function(a) {
+  			// keyWasPressed();
+  			// adjust height 
+  			
+//http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
+  				//fitToContent(this);
+  			//var scrollht = this.scrollHeight;
+  			//$(this).css({"height":"auto","height" : scrollht + "px"});
+	//});
 	
-	//autoresize(newtextarea);
+	
+	// from jquery.elastic
+	// $(newtextarea).elastic();
+//  	$(newdiv).css({'height':'auto','display':'table'})
+	
+	// autoresize(newtextarea);
 	// make it draggable via jquery
 	makeDraggable(newimg);
 	makeDroppable(newtextarea);
 	//fitToContent(newtextarea);
-	$(newtextarea).autoResize({
-		animate: {
-			enabled:  true,
-			duration: 'slow',
-			complete: function() {
-			// reset height. Not sure what's setting it.
-			//$(text_area).css("height","auto");
-			// var div = $(text_area).parent();
-// 			var th = $(text_area).css("height");
-// 			$(div).css("height",th);
- 			$("#status").text("DIV: " + $(div).css("height") + "TEXT: " + $(text_area).css("height"));
-// 			}
-		 }
-	}
-	})
+	
+	// from autoresize.js
+	// $(newtextarea).autoResize({
+// 		animate: {
+// 			enabled:  true,
+// 			duration: 'slow',
+// 			complete: function() {
+// 			// reset height. Not sure what's setting it.
+// 			//$(text_area).css("height","auto");
+// 			// var div = $(text_area).parent();
+// // 			var th = $(text_area).css("height");
+// // 			$(div).css("height",th);
+//  			$("#status").text("DDIV: " + $(div).css("height") + "TEXT: " + $(text_area).css("height"));
+// // 			}
+// 		 }
+// 	}
+// 	});
 	visitEveryLine("UPDATEARROWS");
+	return newdiv;
 }
 
 function swapStyleSheet(sheet){
@@ -1510,9 +1590,7 @@ function swapStyleSheet(sheet){
 	setCookie("theme",sheet);
 }
 
-function autoresize(ta){
 
-}
 function noteSpot(o){
 	// plop a textarea in
 	gCurrentTextarea = o; // update global
@@ -2411,14 +2489,15 @@ function writeRecentFiles(){
                  data: "list=" + encodeURIComponent(strlist),
                  dataType: "JSON",
                  success: function(data) {
-                  	notify("Recent files written.");
+                  	//notify("Recent files written.");
+                  	$("#status").text("Recent files written.");
                    },
                   error: function (e){
                   	if (e.statusText != "OK"){
                   		notify("Failed to write recent files: " + e.statusText, "ERROR");
                   	}
                   	else {
-                  		notify("Recent file list updated.");
+                  		$("#status").text("Recent file list updated.");
                   	}
                   	}
              }); //close $.ajax(
@@ -2452,6 +2531,8 @@ function openOpmlFile_File(fn){
                   	parseOpmlJson(data);
                   	$("#recentdiv").slideUp(400);
                   	openNewFileBookkeeping(fn);
+                  	visitEveryLine("AUTORESIZE");
+                
                   // alert(xmlDoc);
                    },
                   error: function (e){
@@ -2468,7 +2549,7 @@ function openOpmlFile_File(fn){
                   	}
              }); //close $.ajax(
    
-    // turn json into array
+   visitEveryLine("AUTORESIZE");
     
 
 }
@@ -2502,7 +2583,22 @@ function parseOpmlJson(json){
 		createClass(parseInt(lev));
 		// create the div
 		// THIS IS THE ONLY TIME THIS FUNCTION IS CALLED:
-		diva = createNewLineDiv(i,lev,"bullet.png",txt);
+		//diva = createNewLineDiv(i,lev,"bullet.png",txt);
+		// get last div
+	// 	var lastdiv = $(".linediv").last();
+// 		if (lastdiv.length == 0){
+// 			lastdiv = document.getElementById("startingdiv");
+// 		}
+		
+		// var diva = $(gCurrentTextarea).parent();
+		var newlastdiv = createNewLine();
+		// put the level into it
+		$(newlastdiv).attr("level",lev);
+		// put the text into it
+		var txta = getTextareaFromDiv(newlastdiv);
+		$(txta).val(txt);
+		//$(txta).css("display", "block");
+		//alert(i + ": " + $(txta).val());
 		//startingdiv.appendChild(diva);
 		// fit to content
 		//fitToContent(getTextareaFromDiv(diva));
@@ -2610,28 +2706,38 @@ function createNewLineDiv(idint, levelint, whicharrow, whichtext){
 	
 		$( ".line" ).keypress(function(a) {
   			keyWasPressed();
+  			$(".line").on( 'change keyup keydown paste cut', 'textarea', function (){
+    $(this).height(0).height(this.scrollHeight);
+}).find( 'textarea' ).change();
+  			// ADJUST HEIGHT
+  			// http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
+  			$(newtextarea).css({"height":"auto","height" : $(newtextarea).css("scrollHeight") + "px"});
 	});
 	
 	//autoresize(newtextarea);
 	// make it draggable via jquery
 	makeDraggable(newimg);
 	makeDroppable(newtextarea);
+	// from jquery.elastic
+// 	$(".line").elastic();
+//  	$('.linediv').css({'height':'auto','display':'block'})
+
 	//fitToContent(newtextarea);
-	$(newtextarea).autoResize({
-		animate: {
-			enabled:  true,
-			duration: 'slow',
-			complete: function() {
-			// reset height. Not sure what's setting it.
-			//$(text_area).css("height","auto");
-			// var div = $(text_area).parent();
-// 			var th = $(text_area).css("height");
-// 			$(div).css("height",th);
- 			$("#status").text("DIV: " + $(div).css("height") + "TEXT: " + $(text_area).css("height"));
-// 			}
-		 }
-	}
-	});
+// 	$(newtextarea).autoResize({ 
+// 		animate: {
+// 			enabled:  true,
+// 			duration: 'slow',
+// 			complete: function() {
+// 			// reset height. Not sure what's setting it.
+// 			//$(text_area).css("height","auto");
+// 			// var div = $(text_area).parent();
+// // 			var th = $(text_area).css("height");
+// // 			$(div).css("height",th);
+//  			$("#status").text("DIV: " + $(div).css("height") + "TEXT: " + $(text_area).css("height"));
+// // 			}
+// 		 }
+// 	}
+// 	});
 
 
 
@@ -2797,7 +2903,7 @@ function moveCursor(el,direction){
   		
   }
   setCaretToPos(nextel,$(nextel).val().length);
-  gCurrentTextarea = nextel;
+ 
   //$(nextel).focus();
   return
   
