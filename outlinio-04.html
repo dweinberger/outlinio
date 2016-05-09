@@ -84,7 +84,7 @@ $(document).ready(function(){
 	
 	<!-- Open OPML -->
 
-		<div id="opendiv" class="panel">Open OPML File <br />
+		<div id="opendiv" class="panel" >Open OPML File <br />
 			<span>Latest upload: <span id="latestupload" style="color: orange"></span></span>
 			<br />
 			 <form action="php/uploadOPMLtoRead.php" method="post" enctype="multipart/form-data">
@@ -105,7 +105,7 @@ $(document).ready(function(){
 	  
 	  <div id="dropZone" onclick="$('#dropZone').fadeOut(300)"><div id="dztext">Drop .OPML file<br /> Click anywhere to close</div></div>
 	  
-	  <!--input  value="Open real" type="button" class="button"  onclick="moveIn('opendiv');" -->
+	  <input  value="Open real" type="button" class="button"  onclick="moveIn('opendiv');">
 	  
 	  <!-- input value="Save real" type="button" class="button" onclick="moveIn('savediv');" -->
 	  
@@ -132,34 +132,29 @@ $(document).ready(function(){
 	
 	
 <!-- TOOL BAR -->	
-	<input type="button" class="littlebutton" value="Show/hide" onclick="ShowHideDiv('toolsdiv')">
-	<div id="toolsdiv" class="toolsdiv"style="display:block;">
+	<input type="button" class="littlebutton" value="Show/hide" onclick="$('#toolsdiv').slideToggle(500)">
+	<div id="toolsdiv" class="toolsdiv" style="display:block;">
 	
 <span id="uploadDB"></span>
 	
 	<input type="button" value="Recent files" onclick="openRecentFiles()">
 	
-	<form name="exporttypesform" enctype="multipart/form-data">
-	<span id="menuspan">
+	<!-- form name="exporttypesform" enctype="multipart/form-data" -->
+	<!-- span id="menuspan" -->
 	<input type="button" value="New" onclick="createNewOutline()">
 	<!-- chooser goes here -->
-	<span id="openChooser"></span>
+	<span id="openChooser"></span>	
 	<input type="button" value="Dropzone" onclick='$("#dropZone").fadeToggle(300)'>
 	
 	<!-- Save File -->
 	<input type="button" id="saveToLocalDB" onclick='saveFile("NODIALOG")' value= "Save file" title="Saves file to local Dropbox folder">
 	<input type="button" id="saveasbtn"  onclick="openSaveDialog()" value= "Save as">
-	<!-- span id="openbtnspan">
-<input type="file" name="datafile" id="filetoopen" size="40">
 
-	<input type="button" value="OpenOPMLFile" onclick="openOpmlFile()">
-	<input type="button" value="Drag in OPML" onclick="$('#dropZone').fadeIn(300)">
-	
-	</span -->
-	<span id="keystrokectr" class="labeltext"></span><span class="labeltext"> keystrokes till save 
-	<input type=checkbox id="savechk" checked value="Save">
-	
-	<input type=button value="Backup" onclick="saveBackup();"></span>
+	<span id="keystrokectr" class="labeltext"> </span>
+	<span class="labeltext"> keystrokes till save 
+		<input type=checkbox id="savechk" checked value="Save">
+		<input type=button value="Backup" onclick="saveBackup();">
+	</span>
 	<span id="exportas">
 <input type="button" value="Download File" onclick="downloadFile();"> as: <select id="exports">
 			<option value="OPML">Opml</option>
@@ -170,11 +165,10 @@ $(document).ready(function(){
 		
 		<!--input type="file" id="saveasdialogue"-->
 </span>
-	Theme:<select id="themeselectlist"  >
-	    <!-- option  value="menu">Menu</option -->
-	</select>
-	
-	</form></div>
+
+	Theme:<select id="themeselectlist"></select>
+
+</div>
 	
 <!-- Save [as opml] -->
 <!--form enctype="multipart/form-data" action="savefile.php" method="POST">

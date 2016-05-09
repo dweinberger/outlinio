@@ -1,7 +1,7 @@
 	/**
  * @author David Weinberger
  */
-var revdate= "May 1, 2016";
+var revdate= "March 26, 2016";
 
 
 // Global Preferences
@@ -103,7 +103,45 @@ function init(){
   setCookie("path","Dropbox/");
  // setCookie("filename","universitypresser-cocktail-napkin.opml");
   
+  whichBrowser();
+  gFileName = getCookie("filename");
+  gPathOnly = getCookie("path");
+  if ((gFileName!= "") && (gPathOnly != "")){
+  	gFullPath = gPathOnly + gFileName;
+  }
+  else{
+  	gFullPath= "";
+  }
+  // open previous, if we have the data
+  if ( (gPathOnly != "") && (gFileName != "") && (opendefault_pref == "PREVIOUS")){
+  	openOpmlFile_File(gFullPath);
+  }
+  // if not enough data, open default even if preference is for previous
+  if ( (gFullPath == "") && (opendefault_pref == "PREVIOUS")){
+  	openDefault();
+  	setCookie("path", "Dropbox/");
+  	setCookie("filename", "default.opml");
+  }
+  // open default
+  if (opendefault_pref == "DEFAULT"){
+  	openDefault();
+  	setCookie("path", "Dropbox/");
+  	setCookie("filename", "default.opml");
+  }
+	// open new
+  if (opendefault_pref === "NEW"){
+  	createNewOutline();
+  }
   
+  gDisplayFilePath = gFullPath;//.substr(p );
+  p = gDisplayFilePath.lastIndexOf("/");
+  gFileName = gDisplayFilePath.substr(p + 1); // get filename
+  gDisplayFilePath = gPathOnly;
+  $("#savedir1").text(gDisplayFilePath);
+  $("#savedir2").text(gDisplayFilePath);
+  $("#savedilename1").text(gFileName);
+  $("#savedilename2").text(gFileName);
+
 
   $("#savebtn").attr("title",gFileName); // tooltip
   $("#savefilenametextarea").val(gFileName);
@@ -122,7 +160,9 @@ function init(){
     });
  
 	
-// get the themes
+	var firstel = document.getElementById("l0");
+	
+ // get the themes
  
 	  $.ajax({
 		url: "./php/getThemes.php",
@@ -165,7 +205,6 @@ function init(){
 			notify("Error getting themes: " + e, "ERROR");
 		}
 		});
-	
 		
 		
  // set up the theme switching pulldown
@@ -184,48 +223,6 @@ function init(){
     	gCurrentFullPath = gPathOnly + gFileName;
     	setCookie("fullpath",gCurrentFullPath);
     });
-    
-    
-    
-    whichBrowser();
-  gFileName = getCookie("filename");
-  gPathOnly = getCookie("path");
-  if ((gFileName!= "") && (gPathOnly != "")){
-  	gFullPath = gPathOnly + gFileName;
-  }
-  else{
-  	gFullPath= "";
-  }
-  // open previous, if we have the data
-  if ( (gPathOnly != "") && (gFileName != "") && (opendefault_pref == "PREVIOUS")){
-  	openOpmlFile_File(gFullPath);
-  }
-  // if not enough data, open default even if preference is for previous
-  if ( (gFullPath == "") && (opendefault_pref == "PREVIOUS")){
-  	openDefault();
-  	setCookie("path", "Dropbox/");
-  	setCookie("filename", "default.opml");
-  }
-  // open default
-  if (opendefault_pref == "DEFAULT"){
-  	openDefault();
-  	setCookie("path", "Dropbox/");
-  	setCookie("filename", "default.opml");
-  }
-	// open new
-  if (opendefault_pref === "NEW"){
-  	createNewOutline();
-  }
-  
-  gDisplayFilePath = gFullPath;//.substr(p );
-  p = gDisplayFilePath.lastIndexOf("/");
-  gFileName = gDisplayFilePath.substr(p + 1); // get filename
-  gDisplayFilePath = gPathOnly;
-  $("#savedir1").text(gDisplayFilePath);
-  $("#savedir2").text(gDisplayFilePath);
-  $("#savedilename1").text(gFileName);
-  $("#savedilename2").text(gFileName);
-
     	
 
 }
@@ -259,12 +256,11 @@ function initDropbox(){
 					$("#busy").show();
 					openOpmlFile_File(filename);
 					$("#busy").hide();
-					
 					getDropboxPath(filename);
 					var dbpath = gDisplayFilePath.substring(0, gDisplayFilePath.lastIndexOf("/") - 1);
 					setCookie("fullpath", filename);
 					//setCookie("workingdir",dbpath);
-					openNewFileBookkeeping(filename);
+					
 					
 				
 				},
@@ -278,7 +274,7 @@ function initDropbox(){
 		extensions: ['.opml'],
 		linkType: "download"
 	};	
-	var online = true;
+	var online = false;
 	if (online){
 		var button = Dropbox.createChooseButton(opts);
 		document.getElementById("openChooser").appendChild(button);
@@ -691,7 +687,7 @@ function getElfromCaret(){
 
 
 
-function keyWasPressed(ta){
+function keyWasPressed(){
 	// is it a text area that needs to be resized?
 	//fitToContent(gCurrentTextarea);
 	// count keys and trigger doc save
@@ -704,12 +700,6 @@ function keyWasPressed(ta){
 		}
 	}
 	
-	// if textarea, then resize it
-	if (ta != undefined){
-		fitToContent(ta);
-	}
-	
-
 	// var txtht = $(gCurrentTextarea).height();
 // 	var div = $(gCurrentTextarea).parent()[0];
 // 	var dht = $(div).height();
@@ -837,11 +827,8 @@ if (!String.prototype.decodeXML) {
 }
 
 function fitToContent(text_area){
-		if (text_area != undefined){
-		$(text_area).height(0).height(text_area.scrollHeight );
-	}
+	//!$.fx.off;
 	
-	return
 		//adjust div height
 	//http://stackoverflow.com/questions/22571563/dynamically-resize-container-to-fit-text
 	var div =   $(gCurrentTextarea).parent();
@@ -1112,23 +1099,21 @@ function visitEveryLine(operation){
 	for (i=0; i < divs.length; i++){
 		if (operation == "DEBUGAUTORESIZE"){
 			fitToContent(divs[i]);
-			
 		}
 		if (operation == "AUTORESIZE"){
 			var div = divs[i];
 			var text_area = getTextareaFromDiv(div);
-			// $(text_area).focus();
-// 			$(div).focus();
-			fitToContent(text_area);
-// 			$(text_area).height(0).animate({"height" : (text_area.scrollHeight)}, 2000).delay(200);
-			
+			$(text_area).focus();
+			$(div).focus();
+			//fitToContent(text_area);
+			return;
 			// reset height. Not sure what's setting it.
-// 			$(text_area).css("height","auto");
-// 			var th = $(text_area).css("height");
-// 			$(text_area).val(th + ": " + $(text_area).val());
-// 			thnumb = parseInt(th.substring(0, th.length - 2)) + 30;
-// 			th = thnumb + "px";
-// 			$(div).css("height",th);
+			$(text_area).css("height","auto");
+			var th = $(text_area).css("height");
+			$(text_area).val(th + ": " + $(text_area).val());
+			thnumb = parseInt(th.substring(0, th.length - 2)) + 30;
+			th = thnumb + "px";
+			$(div).css("height",th);
  			//$("#status").text("DIV: " + $(div).css("height") + "TEXT: " + $(text_area).css("height"));
 		 }
 	
@@ -1546,26 +1531,17 @@ function createNewLine(div){
 		$(newtextarea).val(gidstr + "\tLEVEL: " + levelstr );
 	}
 	
-	$(newtextarea).on( 'keyup cut paste', function (){
-    	keyWasPressed(this);
-});
-
-//$( ".line" ).keypress(function(a) {
-  			// keyWasPressed();
-  			// adjust height 
-  			
-//http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
-  				//fitToContent(this);
-  			//var scrollht = this.scrollHeight;
-  			//$(this).css({"height":"auto","height" : scrollht + "px"});
-	//});
-	
-	
+		$( ".line" ).keypress(function(a) {
+  			keyWasPressed();
+  			// adjust height http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
+  			var scrollht = a.scrollHeight;
+  			$(a).css({"height":"auto","height" : scrollht + "px"});
+	});
 	// from jquery.elastic
 	// $(newtextarea).elastic();
 //  	$(newdiv).css({'height':'auto','display':'table'})
 	
-	// autoresize(newtextarea);
+	//autoresize(newtextarea);
 	// make it draggable via jquery
 	makeDraggable(newimg);
 	makeDroppable(newtextarea);
@@ -1777,7 +1753,7 @@ function saveFile(mode){
 	$("#savefilenametextarea").val(gFileName);
 	
 	
-	gFullPath =  $("#savedir2").text() +  gFileName;
+	gFullPath =  $("#savedir2").text() + "/" + gFileName;
 
 	getFileGlobals(gFullPath);
 	updateRecentList(gFullPath);
@@ -2384,17 +2360,6 @@ function openNewFileBookkeeping(fn){
 		var path = "";
 		var fname = fn;
 	}
-	// get rid of trailing ? if opening via Dropbox
-	p = fname.indexOf("?");
-	if (p > -1){
-		fname = fname.substr(p + 1);
-	}
-	// add ./Dropbox is opening via Dropbox
-	var dbpos = path.indexOf("Dropbox");
-	// if no Dropbox/ or it's not the root
-	if ( (dbpos == -1) || (dbpos > 4)) {
-		path = "./Dropbox/" + path;
-	}
 	
 	setCookie("path",path);
 	setCookie("filename",fname);
@@ -2566,7 +2531,7 @@ function openOpmlFile_File(fn){
                   	}
              }); //close $.ajax(
    
-   //visitEveryLine("AUTORESIZE");
+    // turn json into array
     
 
 }
@@ -2723,9 +2688,6 @@ function createNewLineDiv(idint, levelint, whicharrow, whichtext){
 	
 		$( ".line" ).keypress(function(a) {
   			keyWasPressed();
-  			$(".line").on( 'change keyup keydown paste cut', 'textarea', function (){
-    $(this).height(0).height(this.scrollHeight);
-}).find( 'textarea' ).change();
   			// ADJUST HEIGHT
   			// http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
   			$(newtextarea).css({"height":"auto","height" : $(newtextarea).css("scrollHeight") + "px"});

@@ -76,6 +76,17 @@ textarea{
    font-family:Arial,Geneva,San Serif;
    font-size: 8pt;
 }
+#status{
+	position: absolute;
+	bottom: 10px;
+	font-family: "Helvetica Neue",Helvetica,Verdana,Arial, sans-serif;
+	font-size: 10px;
+	width:90%;
+	height: 3em;
+	overflow: hidden;
+	
+	
+}
 #dirchooser{
 	position:absolute;
 	left:0;
