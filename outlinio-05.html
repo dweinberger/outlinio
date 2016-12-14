@@ -2,17 +2,21 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-		<title>outlinio-04</title>
+		<title>outlinio-05</title>
 		<link rel="icon" type="image/png" href="favicon.ico">
 		
 		<!-- default.css for the baseline. The id=pagestyle for additional ones from dropdown list -->
 		<link type="text/css" rel="stylesheet" href="./css/default.css">
-		<link id="pagestyle" type="text/css" rel="stylesheet" href="./css/default.css">
+		<!--link id="pagestyle" type="text/css" rel="stylesheet" href="./css/default.css"-->
 		<link id="pagestyle" type="text/css" rel="stylesheet" href="includes/jquery.FileTree/jqueryFileTree.css">
 		<!-- link  type="text/css" rel="stylesheet" href="./css/outlinio-user-prefs.css" -->
 		
 		<script src="./includes/jquery-2.1.4.min.js"></script>
 		<script src="./includes/jquery-ui-1.11.4.custom/jquery-ui.min.js"></script>
+		<!script src="./includes/flexibleArea/jquery.flexibleArea.js"></script-->
+		<!-- Undo:  https://github.com/jzaefferer/undo/blob/master/undo.js -->
+		<script src="./includes/undo.js"></script>
+
 
 <!--
 		<script  src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
@@ -21,14 +25,18 @@
 
 -->
 
-<!-- <script  src="./includes/jquery-ui-1.11.4.custom/jquery-ui.min.js"></script> -->
 
 
-		<script type="text/javascript" src="./includes/autoresize.jquery.js"></script>
+		 <!--script type="text/javascript" src="./includes/autoresize.jquery.js"></script -->
 		<script type="text/javascript" src="./includes/shortcuts.js"></script>
-		<script type="text/javascript" src="./includes/jquery.textareaAutoResize.js"></script>
+		<!--script type="text/javascript" src="./includes/jquery-elastic-1.6.10/jquery.elastic.source.js"></script-->
+		<!-- The following (now commented out) adds height and overlow styles to every textbox.
+		      and is responsible for the autoresize function in createNewLineDiv -->
+		<!-- <script type="text/javascript" src="./includes/jquery.textareaAutoResize.js"></script> -->
 		<script type="text/javascript" src="./includes/jquery.fileTree/jqueryFileTree.js"></script>
-		<script type="text/javascript" src="./js/outlinio_04.js"></script>
+		<script type="text/javascript" src="./includes/download2.js"></script>
+		<script type="text/javascript" src="./js/outlinio_05.js"></script>
+		<script type="text/javascript" src="./preferences.js"></script>
 		<!-- Thanks, http://www.openjs.com/scripts/events/keyboard_shortcuts/-->
 		
 	<script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="7xu5g8mzcmlu1tk"></script>
@@ -67,9 +75,11 @@ $(document).ready(function(){
 		</div>
 		
 		<!-- Recent files pull down -->
-		 <div id="recentdiv">Recent Files (Dropbox)<br>
-		 	<div id = "recentfileslist"></div>
-			<input type="button" value="Close" onclick="$('#recentdiv').slideUp(400);
+		 <div id="recentdiv">
+		 	Recent Files (Dropbox)<br>
+		 	<div id = "recentfileslist">
+		 	</div>
+			<input type="button" value="Close" style="display:none" onclick="$('#recentdiv').slideUp(400);">
 		</div>
 		
 		
@@ -79,7 +89,7 @@ $(document).ready(function(){
 	
 	<!-- Open OPML -->
 
-		<div id="opendiv" class="panel">Open OPML File <br />
+		<div id="opendiv" class="panel" >Open OPML File <br />
 			<span>Latest upload: <span id="latestupload" style="color: orange"></span></span>
 			<br />
 			 <form action="php/uploadOPMLtoRead.php" method="post" enctype="multipart/form-data">
@@ -100,7 +110,7 @@ $(document).ready(function(){
 	  
 	  <div id="dropZone" onclick="$('#dropZone').fadeOut(300)"><div id="dztext">Drop .OPML file<br /> Click anywhere to close</div></div>
 	  
-	  <!--input  value="Open real" type="button" class="button"  onclick="moveIn('opendiv');" -->
+	  <!-- <input  value="Open real" type="button" class="button"  onclick="moveIn('opendiv');"> -->
 	  
 	  <!-- input value="Save real" type="button" class="button" onclick="moveIn('savediv');" -->
 	  
@@ -108,7 +118,7 @@ $(document).ready(function(){
 	  	
 	  	<p class="savetext">Save file (.opml will be added): <textarea id="savefilenametextarea"></textarea><br>
 	  	to <span id="savedir2"></span><span id="savefile2"></span> <p>
-	  	<input type="button" value="save" onclick="saveFile('NODIALOG')">
+	  	<input type="button" value="save" onclick="saveFile('NODIALOG');$('#saveDialog').slideUp(300);$('#dirchooser').slideUp(300) ">
 	  	<input type="button" value="cancel" onclick="$('#saveDialog').slideUp(300)">
 	  	<input type="button" value="change dir" onclick="showFileTree();">
 	  	<input type="checkbox" id="backupchk" >Backup
@@ -127,34 +137,29 @@ $(document).ready(function(){
 	
 	
 <!-- TOOL BAR -->	
-	<input type="button" class="littlebutton" value="Show/hide" onclick="ShowHideDiv('toolsdiv')">
-	<div id="toolsdiv" class="toolsdiv"style="display:block;">
+	<input type="button" class="littlebutton" value="Show/hide" onclick="$('#toolsdiv').slideToggle(500)">
+	<div id="toolsdiv" class="toolsdiv" style="display:block;">
 	
 <span id="uploadDB"></span>
 	
 	<input type="button" value="Recent files" onclick="openRecentFiles()">
 	
-	<form name="exporttypesform" enctype="multipart/form-data">
-	<span id="menuspan">
+	<!-- form name="exporttypesform" enctype="multipart/form-data" -->
+	<!-- span id="menuspan" -->
 	<input type="button" value="New" onclick="createNewOutline()">
 	<!-- chooser goes here -->
-	<span id="openChooser"></span>
+	<span id="openChooser"></span>	
 	<input type="button" value="Dropzone" onclick='$("#dropZone").fadeToggle(300)'>
 	
 	<!-- Save File -->
 	<input type="button" id="saveToLocalDB" onclick='saveFile("NODIALOG")' value= "Save file" title="Saves file to local Dropbox folder">
 	<input type="button" id="saveasbtn"  onclick="openSaveDialog()" value= "Save as">
-	<!-- span id="openbtnspan">
-<input type="file" name="datafile" id="filetoopen" size="40">
 
-	<input type="button" value="OpenOPMLFile" onclick="openOpmlFile()">
-	<input type="button" value="Drag in OPML" onclick="$('#dropZone').fadeIn(300)">
-	
-	</span -->
-	<span id="keystrokectr" class="labeltext"></span><span class="labeltext"> keystrokes till save 
-	<input type=checkbox id="savechk" checked value="Save">
-	
-	<input type=button value="Backup" onclick="saveBackup();"></span>
+	<span id="keystrokectr" class="labeltext"> </span>
+	<span class="labeltext"> keystrokes till save 
+		<input type=checkbox id="savechk" checked value="Save">
+		<input type=button value="Backup" onclick="saveBackup();">
+	</span>
 	<span id="exportas">
 <input type="button" value="Download File" onclick="downloadFile();"> as: <select id="exports">
 			<option value="OPML">Opml</option>
@@ -165,11 +170,10 @@ $(document).ready(function(){
 		
 		<!--input type="file" id="saveasdialogue"-->
 </span>
-	Theme:<select id="themeselectlist"  >
-	    <!-- option  value="menu">Menu</option -->
-	</select>
-	
-	</form></div>
+
+	Theme:<select id="themeselectlist"></select>
+
+</div>
 	
 <!-- Save [as opml] -->
 <!--form enctype="multipart/form-data" action="savefile.php" method="POST">
@@ -182,15 +186,26 @@ $(document).ready(function(){
 
 
 <!-- OUTLINE BEGINS HERE -->
-<span id="savedir1">Dropbox</span>/<span id="savefilename1">filename</span>
+
+<span id="savedir1">Dropbox</span><span>/</span>
+<span id="savefilename1" onclick="changeToNameInput()">filename</span>
 <div id="titleel"><textarea id="titletxtarea" class="titletextarea" onclick="noteSpot(this)" >
 	TITLE</textarea>
+</div>
+
+<div  id="startingdiv">
+</div>
+	
+<div id="enddiv">
+</div>
+
+<div style="clear:both">&nbsp;</div>
+<div id="statusdiv"> Status
+	<span style = "font-size: 0.75em" onclick="$('#statusdiv').slideUp(400)">Close</span>
+	<div id="status" style="display:block; border: 1px solid black">STATUS</div>
 </div>	
-	<div  id="startingdiv"></div>
-	
-	<div id="enddiv"></div>
-	<div id="status"></div>
-	
+
+
 	
 	
 	
@@ -200,11 +215,6 @@ $(document).ready(function(){
     <div id="transoverlay">
     	<!-- close button -->
     	<br><br><input type="button" value="Close" onclick="closeOverlay()" id="closeOverlayBtn">
-    
-	
-		
-		
-	
     
     </div> 
 	<!-- END TRANSOVERLAY -->

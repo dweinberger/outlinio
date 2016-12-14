@@ -9,7 +9,7 @@ error_log("+++++++++++++++++++++++++");
  $filename = $_POST['filename'];
  error_log("file=" . $filename);
  //echo "<p>file =" . $filename . "</p>";
- //$filename="Dropbox/universitypresser-cocktail-napkin.opml";
+ //$filename="Dropbox/testa.opml";
  $f = file_get_contents($filename);
 
 function extractTextFromTags($s,$l){
@@ -18,7 +18,7 @@ function extractTextFromTags($s,$l){
 	$b1 = strlen($s); // end of open tag
 	$b2 = strrpos($l, "</"); // beginning of close tag
 	if (($b1 === false) || ($b2 === false)) {
-		echo "Error with tag: $s in line $l";
+		//echo "Error with tag: $s in line $l";
 		return;
 	}
 	if (($b2 - $b1) < 1){
@@ -51,7 +51,7 @@ function extractTextFromTags($s,$l){
   $ctr = 0;
  for ($i = 0; $i < count($lines); $i++){
      $line = trim($lines[$i]);
-  	//error_log("-----LINE $i=$line");
+  	error_log("-----LINE $i=$line");
   	if ($line !== ""){
  
     // --- look for headings
@@ -112,7 +112,7 @@ function extractTextFromTags($s,$l){
 		    $brack2 = strrpos($line, "\"", $brack1);
 		   // error_log("Line= $line > brack2 = $brack2");
 			$text = substr($line, $brack1 + 1,  $brack2 - ($brack1 + 1));
-		   // echo "<br>$brack1  $brack2 text= $text";
+		   //echo "<br>$brack1  $brack2 text= $text";
 		}
 		//print("CTR=$ctr Text=$text");
 		if ($text !==""){

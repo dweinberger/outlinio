@@ -2,6 +2,7 @@
 .t0{
   background-color: #FF8664;  
   color: #FFFCCB;
+  min-height: 15px;
 }
 #startingdiv{
 	width: 100%;
@@ -10,6 +11,11 @@
 	margin-bottom:10px;
 	clear:both;
 }
+.flexline{
+	display: flex;
+	/* border: 1px dashed black; */
+	/* background-color: #DFCA24; */
+}
 .line{
 	/* 
 font-size: 14pt;
@@ -17,6 +23,9 @@ font-size: 14pt;
 	color:blue;
  */
 	position: relative;
+	/* border: 1px dotted orange; */
+	z-index: 10000;
+	
 /* 
 	height: auto;
 	overflow: visible;
@@ -30,12 +39,18 @@ font-size: 14pt;
 .linediv{
 	height: auto; 
 	position: relative;
-	border: 0px dotted purple;
+	float: left;
+	/* border: 3px dotted purple; */
 	width: 95%;
 	display: table;
 	padding-top: 4px;
 	padding-bottom: 4px;
+	min-height: 15px;
 	
+}
+.lineimg{
+	cursor: pointer;
+	position :relative;
 }
 p {
 	font-family:Georgia, Palatino, Bookman, Times New Roman, serif;
@@ -52,15 +67,15 @@ p {
 /* this becomes the default for lines beyond the defined indents */
 textarea{
 	font-family:Georgia, Palatino, Bookman, Times New Roman, serif;
-	height:15px;
+	/* height:15px; */
 	background-color:#FFFFA0;
 	width:95%;
 	margin-top:1px;
 	margin-bottom:1px;
-	border:0px;
+	/* border: 1px solid red; */
 }
 #titletxtarea{
-	height:30pt;
+	height: 48pt;
 	width: 50%;
 	font-size:24pt;
 	background-color:#FFFFFF;
@@ -76,14 +91,41 @@ textarea{
    font-family:Arial,Geneva,San Serif;
    font-size: 8pt;
 }
+#statusdiv{
+	/* 
+position: absolute;
+	top: 200px;
+	left: 80%;
+	z-index: 20000;
+ */
+
+}
+.dragdiv{
+	background-color: #EE1A00;
+	color: white;
+	padding: 8px;
+	border: 3px solid #EEEB01;
+	font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
+	font-size: 12px;
+	font-weight: 400;
+	-webkit-box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9);
+	-moz-box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9);
+	box-shadow: 7px 7px 33px 0px rgba(0,0,0,0.9); 
+	border-radius: 5px;
+}
+.dragdivnumber{
+	color: yellow;
+	font-weight: 600;
+	font-size: 16px;
+}
 #status{
-	position: absolute;
-	bottom: 10px;
+	
+	/* bottom: 10px; */
 	font-family: "Helvetica Neue",Helvetica,Verdana,Arial, sans-serif;
 	font-size: 10px;
-	width:90%;
-	height: 3em;
-	overflow: hidden;
+	width: 40em;
+	height: 8em;
+	overflow: auto;
 	
 	
 }
@@ -293,7 +335,7 @@ textarea{
 #filetreeclosebtn{
 	position: fixed;
 	top:  0px;
-	left: 670px;
+	left: 280px;
 	width: 40px;
 	height: 40px;
 	text-align: center;
@@ -311,6 +353,17 @@ textarea{
 	border-radius: 50%;
 	
 }
+.directory{
+	font-family: "Helvetica Neue",Helvetica,Verdana,Arial,Sans;
+	font-size: 0.8em;
+}
+.expanded a{
+	text-decoration: none;
+}
+.collapsed a{
+	text-decoration: underlined;
+}
+
 #recentfileslist{
 	display: block;
 }
@@ -324,16 +377,30 @@ textarea{
 	background-color: #EAF834;
 }	
 
-#savefilename1, #savedir1{
+#savefilename1, #savedir1, #appearingNameEntryBox{
 	font-family: "Helvetica Neue",Helvetica,Verdana,Arial,Sans;
 	font-size: 1em;
 }
-#savefilename1{
+#savefilename1, #appearingNameEntryBox{
 	color: #1716FF;
 } 
 #savedir1{	
 	color: gray;
 }	
+#appearingNameEntryBox{
+	border-width: 0;
+	background-color: white;
+}
+#dztext{
+	font-family: "Helvetica Neye", Helvetica, Arial, Verdana;
+	font-size: 3em;
+	font-weight: 650;
+	color: #0748FF;
+	display: table-cell; 
+	height: 200px; 
+	vertical-align: middle; 
+	text-align:center;
+}
 
 
 			`																																																																																																																																																																																																																																																																																																																																											

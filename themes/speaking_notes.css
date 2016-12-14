@@ -1,5 +1,5 @@
 body{
-	background-color: #9CD0FF;
+	background-color: white;
 }
 
 /* Every area that lets you type into it */
@@ -8,9 +8,9 @@ textarea{
 }
 /* Overall default properties of lines of text */
 .line{
-	font-size: 14pt;
+	font-size: 16pt;
 	font-family: Georgia, Palatino, Bookman, "Times New Roman", serif;
-	color:blue;
+	color:black;
 	position: relative;
 	height: auto;
 	overflow: hidden;
@@ -25,34 +25,34 @@ textarea{
 
 /* The different indent levels of each row */
 .t0{
-  background-color: #0068CB; 
-  color: #FFFCCB;
-  font-size: 16pt;
+  background-color: #DFDFDF; 
+  color: black;
+  font-size: 24pt;
 }
 .t1{
-  background-color: #2EB3FF; 
-  color: #112AB3;
-  font-size: 14pt;
+  background-color: white; 
+  color: black;
+  font-size: 20pt;
 }
 .t2{
-  background-color: #49B8FF; 
-  color: #DDEFFF;
-  font-size: 12pt;
+  background-color: white; 
+  color: black;
+  font-size: 18pt;
 }
 .t3{
-  background-color: #5ECDFF; 
-  color: #193BFF;
-  font-size: 10pt;
+  background-color: white; 
+  color: black;
+  font-size: 16pt;
 }
 .t4{
-  background-color: #80E4FF; 
-  color: #F2FBFF;
-  font-size: 10pt;
+  background-color: white; 
+  color: black;
+  font-size: 13pt;
 }
-.t4{
-  background-color: #80E4FF; 
-  color: #0200EA;
-  font-size: 10pt;
+.t5{
+  background-color: white; 
+  color: black;
+  font-size: 12pt;
 }
 
 /* 

@@ -1,17 +1,19 @@
-	/**
+/**
  * @author David Weinberger
+ * david@weinberger.org
  */
-var revdate= "March 26, 2016";
+var revdate= "Dec. 21, 2016";
 
+
+// Preferences are in preferences.js
 
 // Global Preferences
 var gDebug = false; // debug it?
 var gDownloadDir = "Downloads";
-var savePath = "http://localhost/~weinbergerd/outlinio4/";
-var backupDirectory = "./outline_backups/";
 var gDropboxFullRoot  = "./Dropbox/";
 var gDropboxVisibleRoot = "/Dropbox/";
 var gDropboxName = "";
+
 
 // -- file info
 var gFileName = ""; // name of the saved file
@@ -19,16 +21,13 @@ var gPathOnly  = ""; //  path w/o file name but with "Dropbox/"
 var gDisplayFilePath = "" ; //  unused? // path w/o file without "./php"
 var gFullPath  = ""; // full path with filename and Dropbox/
 var gRecentFiles = new Array();
-var gMaxRecentFiles = 10; // max recent files to list
+
+var undos = new Array();
 
 
-
-// how many keystrokes trigger a backup?
-var gKeysUntilSave = 100; 
-var opendefault_pref = "PREVIOUS"; // PREVIOUS, DEFAULT or NEW
 // globals
-var gMaxIndents = 12;
-var gCurrentFullPath = "test1.opml"; //"outlinio_default.opml";
+
+var gCurrentFullPath = "outlinio_default.opml";
 var gHighestLevel = 0;
 var gCurrentTextarea=null; 
 var keyctr=0;
@@ -47,7 +46,7 @@ gDisplayFilePath = gRootdir;
 var gStyles = new Array();
 
 
-// hash table for the spans in an outline row
+//  the spans in an outline row
 var spans = new Array();
 spans['img'] = 0;
 spans['menu'] = 1;
@@ -59,23 +58,26 @@ spans['text'] = 2;
 // dummy so don't have to erase all of the entries until I'm sure
 $.keymap = function() {};
 
-
-
 function init(){
 	
-
 	assignKeys();
+	statusUpdate("Keys assigned.");
 	initDropZone();
+	statusUpdate("Dropzone initialized.");
 	initDropbox();
+	statusUpdate("Dropbox initialized.");
+	statusUpdate("Undo initialized.");
 	getLatestUpload(); // load name of latest file uploaded to be opened
+	statusUpdate("Latest uploaded file found.");
 	gPathOnly = "Dropbox/";
   // update keystroke counter
   $("#keystrokectr").text(gKeysUntilSave);
   
-//   initDefinedClasses(); // add indent to .L div classes
+
   // make space above first outline line droppable
   //     so can drag lines above the first
   makeDroppable($("#startingdiv"));
+  statusUpdate("Elements made droppable.");
   
 
   // show rev date
@@ -90,58 +92,22 @@ function init(){
                  	data = data.replace("+"," ");
                   	gRecentFiles = data.split(",");
                   //	buildRecentFilesDiv();
-                  	notify(gRecentFiles.length + " read.");
+                  	//notify(gRecentFiles.length + " read.");
+                  	statusUpdate(gRecentFiles.length + " read.");
                    },
                   error: function (e){
                   	if (e.statusText !== "OK"){
                   		notify("Failed to read recent files: " . e.statusText, "ERROR");
+                  		statusUpdate("Failed to read recent files: " . e.statusTex);
                   	}
                   	}
              }); 
   
   // Cookies
-  setCookie("path","Dropbox/");
+  //setCookie("path","Dropbox/");
  // setCookie("filename","universitypresser-cocktail-napkin.opml");
   
-  whichBrowser();
-  gFileName = getCookie("filename");
-  gPathOnly = getCookie("path");
-  if ((gFileName!= "") && (gPathOnly != "")){
-  	gFullPath = gPathOnly + gFileName;
-  }
-  else{
-  	gFullPath= "";
-  }
-  // open previous, if we have the data
-  if ( (gPathOnly != "") && (gFileName != "") && (opendefault_pref == "PREVIOUS")){
-  	openOpmlFile_File(gFullPath);
-  }
-  // if not enough data, open default even if preference is for previous
-  if ( (gFullPath == "") && (opendefault_pref == "PREVIOUS")){
-  	openDefault();
-  	setCookie("path", "Dropbox/");
-  	setCookie("filename", "default.opml");
-  }
-  // open default
-  if (opendefault_pref == "DEFAULT"){
-  	openDefault();
-  	setCookie("path", "Dropbox/");
-  	setCookie("filename", "default.opml");
-  }
-	// open new
-  if (opendefault_pref === "NEW"){
-  	createNewOutline();
-  }
   
-  gDisplayFilePath = gFullPath;//.substr(p );
-  p = gDisplayFilePath.lastIndexOf("/");
-  gFileName = gDisplayFilePath.substr(p + 1); // get filename
-  gDisplayFilePath = gPathOnly;
-  $("#savedir1").text(gDisplayFilePath);
-  $("#savedir2").text(gDisplayFilePath);
-  $("#savedilename1").text(gFileName);
-  $("#savedilename2").text(gFileName);
-
 
   $("#savebtn").attr("title",gFileName); // tooltip
   $("#savefilenametextarea").val(gFileName);
@@ -160,12 +126,11 @@ function init(){
     });
  
 	
-	var firstel = document.getElementById("l0");
-	
- // get the themes
+// get the themes
  
 	  $.ajax({
 		url: "./php/getThemes.php",
+		data: {'themedir' : gThemesDir},
 		success: function (fsj){
 			var fs = JSON.parse(fsj);
 			// add files
@@ -203,8 +168,10 @@ function init(){
 		},
 		error: function(e){
 			notify("Error getting themes: " + e, "ERROR");
+			statusUpdate("Error getting themes: " + e);
 		}
 		});
+	
 		
 		
  // set up the theme switching pulldown
@@ -214,18 +181,70 @@ function init(){
 			swapStyleSheet(str);
 			});
 			
+
+    
+    
+	whichBrowser();
+	
+	// -- cookies
+	//setCookie("filename",""); setCookie("path","");
+	//setCookie("path","Dropbox/temp/");
+	gFileName = getCookie("filename");
+	gPathOnly = getCookie("path");
+	
+	if ((gFileName!= "") && (gPathOnly != "")){
+		gFullPath = gPathOnly + "/" + gFileName;
+		//debugger;
+		gFullPath = replaceDoubleSlashes(gFullPath);
+	}
+	else{
+		gFullPath= "";
+	}
+	// open previous, if we have the data
+	if ( (gPathOnly != "") && (gFileName != "") && (opendefault_pref == "PREVIOUS")){
+		openOpmlFile_File(gFullPath);
+	}
+	// if not enough data, open default even if preference is for previous
+	if ( (gFullPath == "") && (opendefault_pref == "PREVIOUS")){
+		openDefault();
+		setCookie("path", "Dropbox/");
+		//debugger;
+		setCookie("filename", "default.opml");
+	}
+	// open default
+	if (opendefault_pref == "DEFAULT"){
+		openDefault();
+		setCookie("path", "Dropbox/");
+		setCookie("filename", "default.opml");
+		debugger;
+	}
+	// open new
+	if (opendefault_pref === "NEW"){
+		createNewOutline();
+	}
+
+	gDisplayFilePath = gFullPath;//.substr(p );
+	p = gDisplayFilePath.lastIndexOf("/");
+	gFileName = gDisplayFilePath.substr(p + 1); // get filename
+	gDisplayFilePath = gPathOnly;
+	$("#savedir1").text(gDisplayFilePath);
+	$("#savedir2").text(gDisplayFilePath);
+	$("#savedilename1").text(gFileName);
+	$("#savedilename2").text(gFileName);
+	
+	
 	// save filename when lose focus on file rename textarea
     $("#savefilenametextarea").blur(function(e) {
-    	//alert("t");
     	gFileName = $("#savefilenametextarea").val();
     	$("#savefilename1").text(gFileName);
     	$("#filename2").text(gFileName);
     	gCurrentFullPath = gPathOnly + gFileName;
     	setCookie("fullpath",gCurrentFullPath);
     });
-    	
 
 }
+
+
 
 function gotNewDir(pathstr){
 	// get rid of "./php";
@@ -256,11 +275,12 @@ function initDropbox(){
 					$("#busy").show();
 					openOpmlFile_File(filename);
 					$("#busy").hide();
+					
 					getDropboxPath(filename);
 					var dbpath = gDisplayFilePath.substring(0, gDisplayFilePath.lastIndexOf("/") - 1);
 					setCookie("fullpath", filename);
 					//setCookie("workingdir",dbpath);
-					
+					openNewFileBookkeeping(filename);
 					
 				
 				},
@@ -274,7 +294,7 @@ function initDropbox(){
 		extensions: ['.opml'],
 		linkType: "download"
 	};	
-	var online = false;
+	var online = true; //DEBUG
 	if (online){
 		var button = Dropbox.createChooseButton(opts);
 		document.getElementById("openChooser").appendChild(button);
@@ -293,11 +313,13 @@ function initDropbox(){
 			success: function () {
 				// Indicate to the user that the files have been saved.
 				notify("Success! Files saved to your Dropbox.");
+				statusUpdate("Files saved to Dropbox");
 			},
 
 
 			error: function (errorMessage) {
-				alert(errorMessage);
+				notify("Error saving to Dropbox: " + errorMessage);
+				statusUpdate("++ Error saving to Dropbox: " + errorMessage);
 			}
 	};
 	
@@ -410,7 +432,7 @@ function setCookie(cookieName,cookieValue) {
 }
 
 //---------------- GET COOKIE
-function getCookie(c_name)
+function getCookie_UNUSED(c_name)
 {
 	 var i,x,y,ARRcookies=document.cookie.split(";");
 	 for (i=0;i<ARRcookies.length;i++)
@@ -423,6 +445,12 @@ function getCookie(c_name)
 		 return unescape(y);
 		 }
 	   }
+}
+
+function getCookie(name) {
+  var value = "; " + document.cookie;
+  var parts = value.split("; " + name + "=");
+  if (parts.length == 2) return parts.pop().split(";").shift();
 }
 
 function showDirs(){
@@ -439,9 +467,11 @@ function refreshDirs(){
 		//data: {rootdir : gRootdir},
 		success: function(number_of_dirs){
           notify(number_of_dirs + " folders refreshed");
+          statusUpdate(number_of_dirs + " folders refreshed");
         },
         error: function(e){
-			alert(e.statusText + " Failed to get the folders in Dropbox");
+			notify(e.statusText + " Failed to get the folders in Dropbox", "ERROR");
+			statusUpdate("++ Failed to get the folders in Dropbox:" + e.statusText);
         }
     });
 }
@@ -486,6 +516,24 @@ function assignKeys(){
   // uses $.Shortcuts.js : http://www.openjs.com/scripts/events/keyboard_shortcuts/#keys
   	// tab
   	
+  	 $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Up',
+   	 	enableInInput: true,
+    	handler: function() {
+			arrowNavigation("UP");
+		}
+	});
+	
+	$.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Down',
+   	 	enableInInput: true,
+    	handler: function() {
+			arrowNavigation("DOWN");
+		}
+	});
+  	
 
     $.Shortcuts.add({
     	type: 'down',
@@ -506,17 +554,6 @@ function assignKeys(){
 		}
 	});
 
-	
-	// $.Shortcuts.add("Shift+Tab",function() {
-// 		operateOnLine(gCurrentTextarea, "OUTDENT");
-// 	});
-// 
-// 	$.Shortcuts.add("Shift+Right",function() {
-// 		operateOnLine(gCurrentTextarea, "INDENT_ONE_LINE");
-// 	});
-// 	$.Shortcuts.add("Shift+Left",function() {
-// 		operateOnLine(gCurrentTextarea, "OUTDENT_ONE_LINE");
-// 	});
 
  $.Shortcuts.add({
     	type: 'down',
@@ -533,20 +570,15 @@ function assignKeys(){
 		}
 	});		
 
-// 	$.Shortcuts.add("Enter",function() {
-// 		if (gCurrentTextarea === null){
-// 			var curel = $("#startingdiv");
-// 		}
-// 		else {
-// 			var curel = gCurrentTextarea;
-// 		}
-// 		createNewLine(curel);
-// 	});
-
-
-// 	$.Shortcuts.add("Shift+Enter",function() {
-// 		insertString(gCurrentTextarea, String.fromCharCode(13)+String.fromCharCode(10));
-// 	});
+// undo
+ $.Shortcuts.add({
+    	type: 'down',
+   	 	mask: 'Ctrl+Z',
+   	 	enableInInput: true,
+    	handler: function() {
+			undo();
+		}
+	});	
 
 // Insert line break
  $.Shortcuts.add({
@@ -667,6 +699,65 @@ $.Shortcuts.start();
 // 	
 }
 
+function arrowNavigation(dir){
+
+	if (dir == "UP"){
+		// get prior div
+		var curdiv = getDivFromTextarea(gCurrentTextarea);
+		var prevdiv = $(curdiv).prev();
+		if ($(prevdiv).attr("id") !== "startingdiv"){
+			var newta = getTextareaFromDiv(prevdiv);
+			$(newta).focus();
+			var oldlen = $(gCurrentTextarea).val().length
+			gCurrentTextarea = newta;
+			setCaretToPos (gCurrentTextarea, oldlen);  // move cursor to end of new textarea
+		}
+	}
+	if (dir == "DOWN"){
+		// get prior div
+		var curdiv = getDivFromTextarea(gCurrentTextarea);
+		var nextdiv = $(curdiv).next();
+		if ($(nextdiv).attr("id") !== "enddiv"){
+			var newta = getTextareaFromDiv(nextdiv);
+			$(newta).focus();
+			gCurrentTextarea = newta;
+			setCaretToPos (gCurrentTextarea, 0); 
+		}
+	}
+	
+
+}
+
+
+
+function undo(){
+	// only if in line or title area
+	var ta = gCurrentTextarea;
+	if ( ($(ta).hasClass("line") == false) && ($(ta).hasClass("titletextarea") == false)){
+		return
+	}
+	
+	// last entry into undo array is current state
+	// which is not what we want to return today
+	// so drop the last entry
+	undos.pop();
+	undos.pop(); // not sure why
+	// get the text from before prior change
+	if (undos.length > 0){
+		var prevtext = undos[undos.length - 1]["text"];
+		var prevtextarea = undos[undos.length - 1]["textarea"];
+		// remove that entry from undos array
+		if (undos.length > 0 ) {undos.length = undos.length - 1;}
+		// make the change
+		if (prevtextarea != undefined){
+			$(prevtextarea).val() == prevtext;
+		}
+	
+	}
+}
+
+
+
 function getElfromCaret(){
 	// 
 	var f1 = $(":focus");
@@ -687,7 +778,7 @@ function getElfromCaret(){
 
 
 
-function keyWasPressed(){
+function keyWasPressed(ta){
 	// is it a text area that needs to be resized?
 	//fitToContent(gCurrentTextarea);
 	// count keys and trigger doc save
@@ -700,6 +791,33 @@ function keyWasPressed(){
 		}
 	}
 	
+	// if textarea, then resize it
+	if (ta != undefined){
+	
+    		// e.type is the type of event fired
+    	// if array is at max, remove first element
+    	if (undos.length >= maxUndos){
+    		undos.shift(); // removes first element
+    	}
+  
+    		var curtext = $(ta).val();
+    		var js = new Array();
+    		js["textarea"] = ta;
+    		js["text"] = curtext;
+    		//push onto global array
+    		// if it's a visible character
+    		var len = undos.length;
+    		if (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                	
+    		((len > 0) && (undos[len - 1]["text"] != curtext)) 
+    		|| (len == 0)
+    		)
+    		{
+    			undos.push(js);
+    		}
+    	}
+
+	
+
 	// var txtht = $(gCurrentTextarea).height();
 // 	var div = $(gCurrentTextarea).parent()[0];
 // 	var dht = $(div).height();
@@ -827,8 +945,11 @@ if (!String.prototype.decodeXML) {
 }
 
 function fitToContent(text_area){
-	//!$.fx.off;
+		if (text_area != undefined){
+		$(text_area).height(0).height(text_area.scrollHeight );
+	}
 	
+	return
 		//adjust div height
 	//http://stackoverflow.com/questions/22571563/dynamically-resize-container-to-fit-text
 	var div =   $(gCurrentTextarea).parent();
@@ -1099,21 +1220,23 @@ function visitEveryLine(operation){
 	for (i=0; i < divs.length; i++){
 		if (operation == "DEBUGAUTORESIZE"){
 			fitToContent(divs[i]);
+			
 		}
 		if (operation == "AUTORESIZE"){
 			var div = divs[i];
 			var text_area = getTextareaFromDiv(div);
-			$(text_area).focus();
-			$(div).focus();
-			//fitToContent(text_area);
-			return;
+			// $(text_area).focus();
+// 			$(div).focus();
+			fitToContent(text_area);
+// 			$(text_area).height(0).animate({"height" : (text_area.scrollHeight)}, 2000).delay(200);
+			
 			// reset height. Not sure what's setting it.
-			$(text_area).css("height","auto");
-			var th = $(text_area).css("height");
-			$(text_area).val(th + ": " + $(text_area).val());
-			thnumb = parseInt(th.substring(0, th.length - 2)) + 30;
-			th = thnumb + "px";
-			$(div).css("height",th);
+// 			$(text_area).css("height","auto");
+// 			var th = $(text_area).css("height");
+// 			$(text_area).val(th + ": " + $(text_area).val());
+// 			thnumb = parseInt(th.substring(0, th.length - 2)) + 30;
+// 			th = thnumb + "px";
+// 			$(div).css("height",th);
  			//$("#status").text("DIV: " + $(div).css("height") + "TEXT: " + $(text_area).css("height"));
 		 }
 	
@@ -1282,23 +1405,13 @@ function nextDiv(d){
 
 function getTextareaFromDiv(d){
 	var e = $(d).find("textarea")[0]; //.firstChild;
-	// if (e.tagName != "TEXTAREA"){
-// 		var don = false;
-// 		while (don == false) {
-// 			e = e.nextSibling;
-// 			if (e == null) {
-// 				don = true;
-// 				e = "NO TEXTAREA";
-// 			}
-// 			if (e.tagName == "TEXTAREA") {
-// 					don = true;
-// 				}
-// 			}
-// 		return e;
-// 	}
-
 return e;
 	
+}
+
+function getDivFromTextarea(ta){
+	var d = $(ta).parent();
+	return d;
 }
 
 function indentLine(div, which){
@@ -1340,7 +1453,7 @@ function indentLine(div, which){
 	$(tarea).attr("class", "line " + "t" + level);
 	$(tarea).attr("level",  level);
 	if (gDebug){
-		$(tarea).val(whichdiv + "\tLEVEL: " + level );
+		$(tarea).val(whichdiv + "\tLEVEL: " + level  + " divclass: " + $(div).class());
 	}
 	
 	
@@ -1393,38 +1506,13 @@ function createClass(lev){
 	style.type = 'text/css';
 	style.innerHTML = styletext;
 	document.getElementsByTagName('head')[0].appendChild(style);
+	$(style).attr("class",classname);
 	
-
+return 
 	
 }
 
-// function initDefinedClasses(){
-// 	// add indents to any initial L classes
-// 	var classname ="", lev="";
-// 	// Look through defined classes for .L#
-//  	var selectors = getAllSelectors();
-//     for(var i = 0; i < selectors.length; i++) {
-//     	classname =selectors[i];
-//     	if (classname.indexOf(".t") == 0){
-//     		// is the rest of it a number??
-//     		lev = classname.substr(2);
-//     		// is numb an integer?
-//     		// http://stackoverflow.com/questions/20311572/check-a-value-is-float-or-int-in-jquery
-//     		//if(typeof (lev + 1)	 === 'number'){
-//     			var numb = Number(lev);
-//   				 if(numb % 1 === 0){
-//   				 // it's an integer
-//   					var indent = gindent * (numb);
-// 					var styletext =  ".L" + numb + '{margin-left:' + indent + 'px;}';
-// 					var style = document.createElement('style');
-// 					style.type = 'text/css';
-// 					style.innerHTML = styletext;
-// 					document.getElementsByTagName('head')[0].appendChild(style);	
-//      			}
-//         	//}
-//     	}
-// 	}
-// }
+
 
 // http://stackoverflow.com/questions/983586/how-can-you-determine-if-a-css-class-exists-with-javascript
 function getAllSelectors() { 
@@ -1527,21 +1615,58 @@ function createNewLine(div){
 	newdiv.appendChild(newtextarea);
 	newtextarea.focus();
 	gCurrentTextarea = newtextarea;
-	if (gDebug){
-		$(newtextarea).val(gidstr + "\tLEVEL: " + levelstr );
-	}
-	
-		$( ".line" ).keypress(function(a) {
-  			keyWasPressed();
-  			// adjust height http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
-  			var scrollht = a.scrollHeight;
-  			$(a).css({"height":"auto","height" : scrollht + "px"});
+
+	// set autosizing
+		$(newtextarea).on('change keyup keydown paste cut',  function (){ //change keyup keydown paste cut
+	resizeTextarea(gidstr);
 	});
+	
+	
+	// $(newtextarea).on( 'keyup cut paste delete', function (){
+//     	keyWasPressed(this);
+   //  });
+    // record change for undo	// record change in undo queue
+// 	$(newtextarea).on('keyup paste delete', function(e) {
+//     		// e.type is the type of event fired
+//     	// if array is at max, remove first element
+//     	if (undos.length >= maxUndos){
+//     		undos.shift(); // removes first element
+//     	}
+//     	if (this != undefined){
+//     		var curtext = $(this).val();
+//     		var js = new Array();
+//     		js["textarea"] = this;
+//     		js["text"] = curtext;
+//     		//push onto global array
+//     		// if it's a visible character
+//     		var len = undos.length;
+//     		if (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                	
+//     		((len > 0) && (undos[len - 1]["text"] != curtext)) 
+//     		|| (len == 0)
+//     		)
+//     		{
+//     			undos.push(js);
+//     		}
+//     	}
+// 	});
+
+
+//$( ".line" ).keypress(function(a) {
+  			// keyWasPressed();
+  			// adjust height 
+  			
+//http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
+  				//fitToContent(this);
+  			//var scrollht = this.scrollHeight;
+  			//$(this).css({"height":"auto","height" : scrollht + "px"});
+	//});
+	
+	
 	// from jquery.elastic
 	// $(newtextarea).elastic();
 //  	$(newdiv).css({'height':'auto','display':'table'})
 	
-	//autoresize(newtextarea);
+	// autoresize(newtextarea);
 	// make it draggable via jquery
 	makeDraggable(newimg);
 	makeDroppable(newtextarea);
@@ -1568,7 +1693,7 @@ function createNewLine(div){
 }
 
 function swapStyleSheet(sheet){
-	document.getElementById('pagestyle').setAttribute('href', "php/themes/" + sheet + ".css");
+	document.getElementById('pagestyle').setAttribute('href', gThemesDir + "/" + sheet + ".css");
 	setCookie("theme",sheet);
 }
 
@@ -1600,10 +1725,10 @@ function changeArrow(o){
 			gCurrentTextarea = $(childs[i]).prev().find("textarea")[0];
 		}
 			if (w=="down"){
-				$(childs[i]).slideUp(200);
+				$(childs[i]).slideUp(gSlideSpeed);
 			}
 			if (w=="right"){
-				$(childs[i]).slideDown(200);
+				$(childs[i]).slideDown(gSlideSpeed);
 			}
 		}
 	
@@ -1701,6 +1826,13 @@ function promptForFileName(){
 	else{ // no dot
 		filename = filename + ".opml";
 	}
+	
+	// is there a path?
+	var dir = $("#savedir1").text();
+	gFullPath=dir + filename;
+	debugger;
+	gPathOnly = dir;
+	
 	//update the page
 	$("#savefilename1").text(filename);
 	$("#filename2").text(filename);
@@ -1716,6 +1848,7 @@ function getFileGlobals(f){
 	var p = f.indexOf("Dropbox");
 	if ( (p == -1) ||(p> -1) && (p > 7) ){ // no Dropbox
 		gFullPath = "Dropbox/" + gFullPath;	
+		debugger;
 	}
 	
 	// is there a name? If so, get it. If not, keep gFileName as it was
@@ -1725,9 +1858,40 @@ function getFileGlobals(f){
 	}
 	
 	// get the pathonly, which already has Dropbox added to it
-	gPathOnly = f.substr(0,lastslash - 1);
+	gPathOnly = f.substr(0,lastslash);
 }
-	
+
+function replaceDoubleSlashes(s){
+	var ss = s.replace(/\/\//g,'/');
+	return ss;
+	statusUpdate("replaceDouble: from " + s + " to " + ss);
+}
+
+function changeToNameInput(){
+	// change filename display span savefilename1 to textbox for input
+	var ta = document.createElement("textarea");
+	ta.setAttribute("id","appearingNameEntryBox");
+	var wd =  $("#savefilename1").css("width");
+	wd = wd.substr(0, wd.length - 2);
+	wd = parseInt(wd) + 40;
+	wd = wd + "px";
+	$(ta).css({"width":wd });
+	$(ta).val($("#savefilename1").text());
+	var prior = $("#savefilename1").prev();
+	$(prior).append(ta);
+	$("#savefilename1").fadeOut(300);
+	$(ta).fadeIn(300);
+	$(ta).focus();
+	 $(ta).blur(function(e){
+	 	$("#savefilename1").text($(ta).val());
+	 	$("#savefilename2").text($(ta).val());
+	 	$("#savefilename1").fadeIn(300);
+	 	gFileName = $(ta).val(); 
+	 	$(ta).fadeOut(300);
+	 	$(ta).remove();
+	 	saveFile("NODIALOG");
+	 });
+}	
 
 function saveFile(mode){
 	
@@ -1752,12 +1916,27 @@ function saveFile(mode){
 	// update the text area
 	$("#savefilenametextarea").val(gFileName);
 	
+	// if trailing slash, remove it
+	var slash = "";
+	var sdt = $("#savedir2").text();
+	if (sdt != ""){
+		var lastchar = sdt.substr(sdt.length - 1);
+		if (lastchar == "/"){
+			sdt = sdt.substr(0,sdt.length - 1);
+		}
+	}
+
 	
 	gFullPath =  $("#savedir2").text() + "/" + gFileName;
+	gFullPath = replaceDoubleSlashes(gFullPath);
+	debugger;
+	statusUpdate("gFullPath in saveFile after doubleslash replace: " + gFullPath);
 
 	getFileGlobals(gFullPath);
+	statusUpdate("gFullPath  after getGlobals: " + gFullPath);
 	updateRecentList(gFullPath);
-	setCookie("path",gFullPath);
+	gPathOnly = replaceDoubleSlashes($("#savedir2").text());
+	setCookie("path",gPathOnly);
 	setCookie("filename",gFileName);
 	
 	var body = buildOPML();
@@ -1782,13 +1961,17 @@ function saveFile(mode){
 			 success: function(data) {
 				if (mode != "QUIET"){
 					notify(gFileName + " backed up to php/outline_backups", "OK");
+					statusUpdate(gFileName + " unquietly backed up to php/outline_backups");
 				}
-				setCookie("path",gFullPath);
+				setCookie("path",gPathOnly);
+				debugger;
 				setCookie("file",filename);
 			   },
 			  error: function (e){
 				if (e.statusText != "OK"){
-					notify( "Error: " + e, "ERROR");
+					notify( "Error backing up: " + e, "ERROR");
+					statusUpdate("Error unquietly backing up: " + e, "ERROR");
+					
 					}
 				}
 				 });		 
@@ -1803,6 +1986,7 @@ function saveFile(mode){
 		// no filename or no path, so open DB Saver
 		if ((gFileName === "") || (gFullPath  === "")){
 			notify("No filename or directory. Save failed", "ERROR");
+			statusUpdate( "++ Error saving in " + mode +  " mode : " + e);
 			return
 		}
 	// else we're saving it locally to the existing path
@@ -1817,14 +2001,18 @@ function saveFile(mode){
 			 //async: false,
 			 success: function(data) {
 				if (mode != "QUIET"){
-					notify(gFileName + " saved to " + gFullPath, "OK");
+					notify(gFullPath + " saved.", "OK");
+					statusUpdate(gFullPath + " quietly saved.");
 				}
-				setCookie("path",gFullPath);
+				setCookie("path",gPathOnly);
+				//debugger;
 				setCookie("filename",gFileName);
+				statusUpdate("Cookies path and filename: " + gPathOnly + " : " + gFileName);
 			   },
 			  error: function (e){
 				if (e.statusText != "OK"){
 					notify( "Error: " + e.statusText, "ERROR");
+					statusUpdate( "++ Error quietly saving: " + e.statusText);
 					}
 				}
 				 });
@@ -1838,6 +2026,7 @@ function saveFile(mode){
 		if  (gFullPath  === ""){
 			if ( ($("#savedir1").text() !== "pathname") || ($("#savedir1").text() !== "")) {
 				gFullPath = $("#savedir1").text() + "/" + filename;
+				debugger;
 				gPathOnly = $("#savedir1").text();
 				$("savedir").text(gPathOnly);
 			}
@@ -1857,15 +2046,20 @@ function saveFile(mode){
 			 success: function(data) {
 				if (mode != "QUIET"){
 					notify(gFileName + " saved to " + gPathOnly, "OK");
+					statusUpdate(gFileName + " quietly saved to " + gPathOnly);
 				}
 			   },
 			  error: function (e){
 				if (e.statusText != "OK"){
 					notify( "Error: " + e.statusText, "ERROR");
+					statusUpdate( "++ " + e.statusText);
 					}
 				}
 				 });
 			setCookie("fullpath",gFullPath);
+			setCookie("path",gPathOnly);
+			debugger;
+			statusUpdate("Cookie set: path: " + gPathOnly + " and fullpath: " + gFullpath);
 			//setCookie("file",gFileName);
 			return	
 	}
@@ -1908,6 +2102,7 @@ function saveFile_old(auto){
 		var filetitle = prompt("Enter a title (.opml will be added)",filetitle);
 		if ((filetitle == null) && (filetitle== "")){
 			notify("NOT saved, because no title", "ERROR");
+			statusUpdate("++ NOT saved, because no title");
 			return
 		}
 		gFileTitle = filetitle; // save as global
@@ -2346,6 +2541,14 @@ function openOpmlFile(txt){
 
 }
 
+function statusUpdate(txt){
+	var div = document.createElement("div");
+	$(div).attr("class","statusdiv");
+	$(div).text(txt);
+	$("#status").prepend(div);
+	return 
+}
+
 function openNewFileBookkeeping(fn){
 	// update the metadata etc when a file is saved.
 	
@@ -2360,9 +2563,21 @@ function openNewFileBookkeeping(fn){
 		var path = "";
 		var fname = fn;
 	}
+	// get rid of trailing ? if opening via Dropbox
+	p = fname.indexOf("?");
+	if (p > -1){
+		fname = fname.substr(p + 1);
+	}
+	// add ./Dropbox is opening via Dropbox
+	var dbpos = path.indexOf("Dropbox");
+	// if no Dropbox/ or it's not the root
+	if ( (dbpos == -1) || (dbpos > 4)) {
+		path = "./Dropbox/" + path;
+	}
 	
 	setCookie("path",path);
 	setCookie("filename",fname);
+	
 	
 	// update path displays
 	$("#savedir1").text(path);
@@ -2472,14 +2687,15 @@ function writeRecentFiles(){
                  dataType: "JSON",
                  success: function(data) {
                   	//notify("Recent files written.");
-                  	$("#status").text("Recent files written.");
+                  	statusUpdate("Recent files written.");
                    },
                   error: function (e){
                   	if (e.statusText != "OK"){
                   		notify("Failed to write recent files: " + e.statusText, "ERROR");
+                  	statusUpdate("++ Failed to write recent files.");
                   	}
                   	else {
-                  		$("#status").text("Recent file list updated.");
+                  		statusUpdate("Recent file list updated.");
                   	}
                   	}
              }); //close $.ajax(
@@ -2513,14 +2729,16 @@ function openOpmlFile_File(fn){
                   	parseOpmlJson(data);
                   	$("#recentdiv").slideUp(400);
                   	openNewFileBookkeeping(fn);
-                  	visitEveryLine("AUTORESIZE");
+                  	//visitEveryLine("AUTORESIZE");
+                  	addFileToDropdown(fn);
                 
                   // alert(xmlDoc);
                    },
                   error: function (e){
                   	var ee = e;
                   	if (e.statusText != "OK"){
-                  		notify("Error opening " + gFullPath + ": " + e.statusText, "ERROR");;
+                  		notify("Error opening " + gFullPath + ": " + e.statusText, "ERROR");
+                  		statusUpdate("Error opening " + gFullPath + ": " + e.statusText);
                   		}
                   	else{
                   		json=e.statusText;
@@ -2531,7 +2749,7 @@ function openOpmlFile_File(fn){
                   	}
              }); //close $.ajax(
    
-    // turn json into array
+   //visitEveryLine("AUTORESIZE");
     
 
 }
@@ -2552,10 +2770,14 @@ function parseOpmlJson(json){
    // var barray = jsonarray["content"];
    var barray = jsonarray["content"];
     // reset the globals if there's any content to this
+    if (barray == undefined){
+    	notify("Problem with JSON, line 2772", "ERROR");
+    	return
+    }
     if (barray.length > 0) {
     	initVariables();
     }
-    $("#titletxtarea").val(jsonarray["title"]); // first element of jsonarray is metadata
+    $("#titletxtarea").html(jsonarray["title"]); // first element of jsonarray is metadata
     
     // cycle through jsonarray["content"]
     for (var i=0; i < barray.length; i++){
@@ -2564,26 +2786,31 @@ function parseOpmlJson(json){
 		// create the class, if necessary
 		createClass(parseInt(lev));
 		// create the div
-		// THIS IS THE ONLY TIME THIS FUNCTION IS CALLED:
-		//diva = createNewLineDiv(i,lev,"bullet.png",txt);
-		// get last div
-	// 	var lastdiv = $(".linediv").last();
-// 		if (lastdiv.length == 0){
-// 			lastdiv = document.getElementById("startingdiv");
-// 		}
+		// THIS IS THE ONLY TIME THIS FUNCTION IS CALLED, but it's necessary:
+		diva = createNewLineDiv(i,lev,"bullet.png",txt);
+		//get last div;
+		var lastdiv = $(".linediv").last();
+		if (lastdiv.length == 0){
+			lastdiv = document.getElementById("startingdiv");
+		}
 		
 		// var diva = $(gCurrentTextarea).parent();
-		var newlastdiv = createNewLine();
+		//var newlastdiv = createNewLine(diva);
 		// put the level into it
-		$(newlastdiv).attr("level",lev);
+		//$(newlastdiv).attr("level",lev);
 		// put the text into it
-		var txta = getTextareaFromDiv(newlastdiv);
-		$(txta).val(txt);
+		//var txta = getTextareaFromDiv(newlastdiv);
+		//$(txta).val(txt);
+		// debug
+		if (gDebug){
+			var debugtext ="[ID:" +  $(txta).attr("id") + " LEVEL:" + lev + " divclass:" + newlastdiv.getAttribute('class') +  "] " + txt ;
+			$(txta).val(debugtext);
+		}
 		//$(txta).css("display", "block");
 		//alert(i + ": " + $(txta).val());
 		//startingdiv.appendChild(diva);
 		// fit to content
-		//fitToContent(getTextareaFromDiv(diva));
+		//fitToContent(diva);
 	}
 	//gidstr = i;
 	addFileToDropdown();
@@ -2669,7 +2896,11 @@ function createNewLineDiv(idint, levelint, whicharrow, whichtext){
 	newdiv.appendChild(newimg);
 	
 	// create new  textarea
-	var newtextarea = document.createElement('TEXTAREA');
+	// var newflex = document.createElement("div");
+// 	$(newflex).attr("class","flexline");
+	var newtextarea = document.createElement('textarea');
+	// make its height adjust
+	//newtextarea.setAttribute("contenteditable","true");
 	newtextarea.setAttribute("onclick","noteSpot(this);");
 	$(newtextarea).val(whichtext); // add the text
 	newlevel = "t" + levelint; // set the level
@@ -2680,18 +2911,31 @@ function createNewLineDiv(idint, levelint, whicharrow, whichtext){
 	// set id
 	newtextarea.setAttribute("id", idint + "");
 	newdiv.appendChild(newtextarea);
+	// newdiv.appendChild(newflex);
 	newtextarea.focus();
 	gCurrentTextarea = newtextarea;
 	if (gDebug){
 		$(newtextarea).val(idint + "\tLEVEL: " +  "LEVEL: " + (levelint + "") );
 	}
 	
+	// set autosizing
+	$(newtextarea).on( 'change keyup keydown paste cut',  function (){ //change keyup keydown paste cut
+		resizeTextarea(idint + "");
+	});
+
+	
+	// debug
+	if (1 == 2) {
 		$( ".line" ).keypress(function(a) {
   			keyWasPressed();
+  			$(".line").on( 'change keyup keydown paste cut', 'textarea', function (){
+    $(this).height(0).height(this.scrollHeight);
+}).find( 'textarea' ).change();
   			// ADJUST HEIGHT
   			// http://stackoverflow.com/questions/17283878/html-textarea-resize-automatically
-  			$(newtextarea).css({"height":"auto","height" : $(newtextarea).css("scrollHeight") + "px"});
+  		// 	$(newtextarea).css({"height":"auto","height" : $(newtextarea).css("scrollHeight") + "px"});
 	});
+	}
 	
 	//autoresize(newtextarea);
 	// make it draggable via jquery
@@ -2718,8 +2962,14 @@ function createNewLineDiv(idint, levelint, whicharrow, whichtext){
 // 	}
 // 	});
 
+  return newdiv;
 
+}
 
+function resizeTextarea (id) {
+  var a = document.getElementById(id);
+  a.style.height = 'auto';
+  a.style.height = a.scrollHeight+'px';
 }
 
 function createNewLineDiv_old(idstr, levelstr, whicharrow, whichtext){
@@ -2985,22 +3235,17 @@ function makeDraggable(obj){
        appendTo: "body",
         helper: function(){                
 				var ta = $(this).parent().find('textarea');
-				var t = $(ta).clone(); // copy the first row's text area
 				var txt = $(ta).val(); // textarea's text
-				// make a mini-me that inverts the colors and is 0.5 width
-				$(t).css({
-					"background-color" : $(ta).css("color"), 
-					"color" : $(ta).css("background-color"),
-					"font-family" : $(ta).css("font-family"),
-					"font-size" : "14px",
-					"width" : "30%"
-				});
+
 				// count the rows
 				var sourceparent = $(obj).parent();
 				var numberOfLines = getAllChildrenOfLine(sourceparent).length;
-				if (txt > 25) {txt = txt.substring(0,25) + "...";}
-				$(t).val("Dragging " + numberOfLines + ". " + txt);
-				return $(t)[0];
+				if (txt.length > 25) {txt = txt.substring(0,25) + "...";}
+				// create the drag mini-me
+				var d = document.createElement("DIV");
+				$(d).attr("class","dragdiv");
+				$(d).html( "Dragging <span class='dragdivnumber'>" + numberOfLines + "</span> lines: " + txt);
+				return d;
      		}
         });
 }
@@ -3165,6 +3410,7 @@ function selectDir(which){
 	setCookie("workingdir",gDisplayFilePath);
 	$("#workingdirspan").html(gDisplayFilePath);
 	notify(pathstring);
+	statusUpdate(pathstring);
 	$("#savebtn").attr("title",pathstring);
 	$("#savefilenametextarea").text(pathstring); // add path to save-as pulldown
 	return pathstring
